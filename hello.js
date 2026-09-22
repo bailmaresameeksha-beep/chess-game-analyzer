@@ -1,0 +1,1 @@
+console.log("Chess Game Analyzer started");
