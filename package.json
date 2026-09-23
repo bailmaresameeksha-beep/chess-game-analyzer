@@ -1,0 +1,24 @@
+{
+  "name": "chess-game-analyzer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "hello.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bailmaresameeksha-beep/chess-game-analyzer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/bailmaresameeksha-beep/chess-game-analyzer/issues"
+  },
+  "homepage": "https://github.com/bailmaresameeksha-beep/chess-game-analyzer#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
