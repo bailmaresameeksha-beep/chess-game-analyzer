@@ -64,6 +64,36 @@ app.get("/api/player/:username/games", async (req, res) => {
     }
 });
 
+app.get("/api/player/:username/games/:year/:month", async (req, res) => {
+    const { username, year, month } = req.params;
+
+    try {
+        const response = await fetch(
+            `https://api.chess.com/pub/player/${username}/games/${year}/${month}/pgn`,
+            {
+                headers: {
+                    "User-Agent": "ChessGameAnalyzer/1.0 (learning project)"
+                }
+            }
+        );
+
+        if (!response.ok) {
+            return res.status(response.status).json({
+                error: "Games not found"
+            });
+        }
+
+        const pgn = await response.text();
+
+        res.type("text/plain");
+        res.send(pgn);
+    } catch (error) {
+        res.status(500).json({
+            error: "Something went wrong"
+        });
+    }
+});
+
 app.listen(3001, () => {
     console.log("Server running on http://localhost:3001");
 });
