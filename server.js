@@ -1,5 +1,5 @@
 const express = require("express");
-
+const { Chess } = require("chess.js");
 const app = express();
 
 app.get("/", (req, res) => {
@@ -92,6 +92,19 @@ app.get("/api/player/:username/games/:year/:month", async (req, res) => {
             error: "Something went wrong"
         });
     }
+});
+
+app.get("/test-chess", (req, res) => {
+    const chess = new Chess();
+
+    chess.move("e4");
+    chess.move("e5");
+    chess.move("Nf3");
+
+    res.json({
+        position: chess.fen(),
+        moves: chess.history()
+    });
 });
 
 app.listen(3001, () => {
