@@ -1,5 +1,6 @@
 const express = require("express");
 const { Chess } = require("chess.js");
+
 const app = express();
 
 app.get("/", (req, res) => {
@@ -94,6 +95,69 @@ app.get("/api/player/:username/games/:year/:month", async (req, res) => {
     }
 });
 
+app.get("/api/analyze/:username/:year/:month", async (req, res) => {
+    const { username, year, month } = req.params;
+
+    try {
+        const response = await fetch(
+            `https://api.chess.com/pub/player/${username}/games/${year}/${month}/pgn`,
+            {
+                headers: {
+                    "User-Agent": "ChessGameAnalyzer/1.0 (learning project)"
+                }
+            }
+        );
+
+        if (!response.ok) {
+            return res.status(response.status).json({
+                error: "Games not found"
+            });
+        }
+
+        const pgn = await response.text();
+
+        const games = pgn.split(/\n\n(?=\[Event )/);
+
+        const analyzedGames = [];
+
+        for (const gamePgn of games) {
+            const chess = new Chess();
+
+            try {
+                const loaded = chess.loadPgn(gamePgn);
+
+                if (loaded === false) {
+                    continue;
+                }
+
+                analyzedGames.push({
+                    moves: chess.history(),
+                    totalMoves: chess.history().length,
+                    finalPosition: chess.fen()
+                });
+
+            } catch (error) {
+                console.log("Skipping game:", error.message);
+            }
+        }
+
+        res.json({
+            username: username,
+            year: year,
+            month: month,
+            totalGames: analyzedGames.length,
+            games: analyzedGames
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: error.message
+        });
+    }
+});
+
 app.get("/test-chess", (req, res) => {
     const chess = new Chess();
 
@@ -104,6 +168,26 @@ app.get("/test-chess", (req, res) => {
     res.json({
         position: chess.fen(),
         moves: chess.history()
+    });
+});
+
+app.get("/test-pgn", async (req, res) => {
+    const response = await fetch(
+        "https://api.chess.com/pub/player/Hikaru/games/2026/09/pgn",
+        {
+            headers: {
+                "User-Agent": "ChessGameAnalyzer/1.0 (learning project)"
+            }
+        }
+    );
+
+    const pgn = await response.text();
+
+    const games = pgn.split(/\n\n(?=\[Event )/);
+
+    res.json({
+        totalGames: games.length,
+        firstGame: games[0]
     });
 });
 
