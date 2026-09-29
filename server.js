@@ -119,6 +119,9 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         const games = pgn.split(/\n\n(?=\[Event )/);
 
         const analyzedGames = [];
+        let wins = 0;
+        let losses = 0;
+        let draws = 0;
 
         for (const gamePgn of games) {
             const chess = new Chess();
@@ -130,24 +133,57 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
                     continue;
                 }
 
-                analyzedGames.push({
-                    moves: chess.history(),
-                    totalMoves: chess.history().length,
-                    finalPosition: chess.fen()
-                });
+            const headers = chess.header();
+
+if (headers.Result === "1-0") {
+    if (headers.White.toLowerCase() === username.toLowerCase()) {
+        wins++;
+    } else {
+        losses++;
+    }
+}
+
+if (headers.Result === "0-1") {
+    if (headers.Black.toLowerCase() === username.toLowerCase()) {
+        wins++;
+    } else {
+        losses++;
+    }
+}
+
+if (headers.Result === "1/2-1/2") {
+    draws++;
+}
+
+analyzedGames.push({
+    white: headers.White,
+    black: headers.Black,
+    result: headers.Result,
+    moves: chess.history(),
+    totalMoves: chess.history().length,
+    finalPosition: chess.fen()
+});
 
             } catch (error) {
                 console.log("Skipping game:", error.message);
             }
         }
+        const totalGames = analyzedGames.length;
 
+const winPercentage = totalGames > 0
+    ? ((wins / totalGames) * 100).toFixed(2)
+    : "0.00";
         res.json({
-            username: username,
-            year: year,
-            month: month,
-            totalGames: analyzedGames.length,
-            games: analyzedGames
-        });
+        username: username,
+        year: year,
+        month: month,
+        totalGames: analyzedGames.length,
+        wins: wins,
+        losses: losses,
+        draws: draws,
+        winPercentage: winPercentage,
+        games: analyzedGames
+    });
 
     } catch (error) {
         console.error(error);
