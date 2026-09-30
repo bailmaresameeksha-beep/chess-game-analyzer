@@ -122,6 +122,16 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         let wins = 0;
         let losses = 0;
         let draws = 0;
+        let whiteGames = 0;
+let blackGames = 0;
+
+let whiteWins = 0;
+let whiteLosses = 0;
+let whiteDraws = 0;
+
+let blackWins = 0;
+let blackLosses = 0;
+let blackDraws = 0;
 
         for (const gamePgn of games) {
             const chess = new Chess();
@@ -132,27 +142,43 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
                 if (loaded === false) {
                     continue;
                 }
+                
 
             const headers = chess.header();
+            if (headers.White.toLowerCase() === username.toLowerCase()) {
+    whiteGames++;
+} else if (headers.Black.toLowerCase() === username.toLowerCase()) {
+    blackGames++;
+}
 
 if (headers.Result === "1-0") {
     if (headers.White.toLowerCase() === username.toLowerCase()) {
         wins++;
+        whiteWins++;
     } else {
         losses++;
+        blackLosses++;
     }
 }
 
 if (headers.Result === "0-1") {
     if (headers.Black.toLowerCase() === username.toLowerCase()) {
         wins++;
+        blackWins++;
     } else {
         losses++;
+        whiteLosses++;
     }
 }
 
 if (headers.Result === "1/2-1/2") {
     draws++;
+
+    if (headers.White.toLowerCase() === username.toLowerCase()) {
+        whiteDraws++;
+    } else {
+        blackDraws++;
+    }
 }
 
 analyzedGames.push({
@@ -181,6 +207,14 @@ const winPercentage = totalGames > 0
         wins: wins,
         losses: losses,
         draws: draws,
+        whiteGames: whiteGames,
+        blackGames: blackGames,
+        whiteWins: whiteWins,
+        whiteLosses: whiteLosses,
+        whiteDraws: whiteDraws,
+        blackWins: blackWins,
+        blackLosses: blackLosses,
+        blackDraws: blackDraws,
         winPercentage: winPercentage,
         games: analyzedGames
     });
