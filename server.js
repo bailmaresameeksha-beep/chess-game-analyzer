@@ -199,6 +199,14 @@ analyzedGames.push({
 const winPercentage = totalGames > 0
     ? ((wins / totalGames) * 100).toFixed(2)
     : "0.00";
+    const whiteWinPercentage = whiteGames > 0
+    ? ((whiteWins / whiteGames) * 100).toFixed(2)
+    : "0.00";
+
+const blackWinPercentage = blackGames > 0
+    ? ((blackWins / blackGames) * 100).toFixed(2)
+    : "0.00";
+
         res.json({
         username: username,
         year: year,
@@ -212,9 +220,11 @@ const winPercentage = totalGames > 0
         whiteWins: whiteWins,
         whiteLosses: whiteLosses,
         whiteDraws: whiteDraws,
+        whiteWinPercentage: whiteWinPercentage,
         blackWins: blackWins,
         blackLosses: blackLosses,
         blackDraws: blackDraws,
+        blackWinPercentage: blackWinPercentage,
         winPercentage: winPercentage,
         games: analyzedGames
     });
