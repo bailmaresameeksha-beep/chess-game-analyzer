@@ -122,6 +122,9 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         let wins = 0;
         let losses = 0;
         let draws = 0;
+        let shortGames = 0;
+let mediumGames = 0;
+let longGames = 0;
         let whiteGames = 0;
 let blackGames = 0;
 
@@ -181,12 +184,35 @@ if (headers.Result === "1/2-1/2") {
     }
 }
 
+const moves = chess.history();
+const totalMoves = moves.length;
+const openingMoves = moves.slice(0, 10);
+if (totalMoves <= 20) {
+    shortGames++;
+} else if (totalMoves <= 40) {
+    mediumGames++;
+} else {
+    longGames++;
+}
+
+let gameLength;
+
+if (totalMoves <= 20) {
+    gameLength = "Short";
+} else if (totalMoves <= 40) {
+    gameLength = "Medium";
+} else {
+    gameLength = "Long";
+}
+
 analyzedGames.push({
     white: headers.White,
     black: headers.Black,
     result: headers.Result,
-    moves: chess.history(),
-    totalMoves: chess.history().length,
+    moves: moves,
+    totalMoves: totalMoves,
+    gameLength: gameLength,
+    openingMoves: openingMoves,
     finalPosition: chess.fen()
 });
 
@@ -226,6 +252,9 @@ const blackWinPercentage = blackGames > 0
         blackDraws: blackDraws,
         blackWinPercentage: blackWinPercentage,
         winPercentage: winPercentage,
+        shortGames: shortGames,
+        mediumGames: mediumGames,
+        longGames: longGames,
         games: analyzedGames
     });
 
