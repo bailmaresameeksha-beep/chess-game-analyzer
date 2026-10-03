@@ -123,18 +123,29 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         let losses = 0;
         let draws = 0;
         let shortGames = 0;
-let mediumGames = 0;
-let longGames = 0;
+        let mediumGames = 0;
+        let longGames = 0;
+        let shortWins = 0;
+        let shortLosses = 0;
+        let shortDraws = 0;
+
+        let mediumWins = 0;
+        let mediumLosses = 0;
+        let mediumDraws = 0;
+
+        let longWins = 0;
+        let longLosses = 0;
+        let longDraws = 0;
         let whiteGames = 0;
-let blackGames = 0;
+        let blackGames = 0;
 
-let whiteWins = 0;
-let whiteLosses = 0;
-let whiteDraws = 0;
+        let whiteWins = 0;
+        let whiteLosses = 0;
+        let whiteDraws = 0;
 
-let blackWins = 0;
-let blackLosses = 0;
-let blackDraws = 0;
+        let blackWins = 0;
+        let blackLosses = 0;
+        let blackDraws = 0;
 
         for (const gamePgn of games) {
             const chess = new Chess();
@@ -204,6 +215,71 @@ if (totalMoves <= 20) {
 } else {
     gameLength = "Long";
 }
+if (gameLength === "Short") {
+    if (headers.Result === "1-0") {
+        if (headers.White.toLowerCase() === username.toLowerCase()) {
+            shortWins++;
+        } else {
+            shortLosses++;
+        }
+    }
+
+    if (headers.Result === "0-1") {
+        if (headers.Black.toLowerCase() === username.toLowerCase()) {
+            shortWins++;
+        } else {
+            shortLosses++;
+        }
+    }
+
+    if (headers.Result === "1/2-1/2") {
+        shortDraws++;
+    }
+}
+
+if (gameLength === "Medium") {
+    if (headers.Result === "1-0") {
+        if (headers.White.toLowerCase() === username.toLowerCase()) {
+            mediumWins++;
+        } else {
+            mediumLosses++;
+        }
+    }
+
+    if (headers.Result === "0-1") {
+        if (headers.Black.toLowerCase() === username.toLowerCase()) {
+            mediumWins++;
+        } else {
+            mediumLosses++;
+        }
+    }
+
+    if (headers.Result === "1/2-1/2") {
+        mediumDraws++;
+    }
+}
+
+if (gameLength === "Long") {
+    if (headers.Result === "1-0") {
+        if (headers.White.toLowerCase() === username.toLowerCase()) {
+            longWins++;
+        } else {
+            longLosses++;
+        }
+    }
+
+    if (headers.Result === "0-1") {
+        if (headers.Black.toLowerCase() === username.toLowerCase()) {
+            longWins++;
+        } else {
+            longLosses++;
+        }
+    }
+
+    if (headers.Result === "1/2-1/2") {
+        longDraws++;
+    }
+}
 
 analyzedGames.push({
     white: headers.White,
@@ -255,6 +331,17 @@ const blackWinPercentage = blackGames > 0
         shortGames: shortGames,
         mediumGames: mediumGames,
         longGames: longGames,
+        shortWins: shortWins,
+        shortLosses: shortLosses,
+        shortDraws: shortDraws,
+
+        mediumWins: mediumWins,
+        mediumLosses: mediumLosses,
+        mediumDraws: mediumDraws,
+
+        longWins: longWins,
+        longLosses: longLosses,
+        longDraws: longDraws,
         games: analyzedGames
     });
 
