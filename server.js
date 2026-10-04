@@ -146,6 +146,7 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         let blackWins = 0;
         let blackLosses = 0;
         let blackDraws = 0;
+        const opponents = {};
 
         for (const gamePgn of games) {
             const chess = new Chess();
@@ -159,6 +160,18 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
                 
 
             const headers = chess.header();
+            let opponent;
+
+if (headers.White.toLowerCase() === username.toLowerCase()) {
+    opponent = headers.Black;
+} else {
+    opponent = headers.White;
+}
+if (!opponents[opponent]) {
+    opponents[opponent] = 0;
+}
+
+opponents[opponent]++;
             if (headers.White.toLowerCase() === username.toLowerCase()) {
     whiteGames++;
 } else if (headers.Black.toLowerCase() === username.toLowerCase()) {
@@ -308,7 +321,7 @@ const winPercentage = totalGames > 0
 const blackWinPercentage = blackGames > 0
     ? ((blackWins / blackGames) * 100).toFixed(2)
     : "0.00";
-
+        console.log(opponents);
         res.json({
         username: username,
         year: year,
@@ -327,6 +340,7 @@ const blackWinPercentage = blackGames > 0
         blackLosses: blackLosses,
         blackDraws: blackDraws,
         blackWinPercentage: blackWinPercentage,
+        opponents: opponents,
         winPercentage: winPercentage,
         shortGames: shortGames,
         mediumGames: mediumGames,
