@@ -309,6 +309,14 @@ analyzedGames.push({
                 console.log("Skipping game:", error.message);
             }
         }
+ const opponentList = Object.entries(opponents).map(([opponent, games]) => {
+    return {
+        opponent: opponent,
+        games: games
+    };
+});      
+opponentList.sort((a, b) => b.games - a.games); 
+const topOpponents = opponentList.slice(0, 10);
         const totalGames = analyzedGames.length;
 
 const winPercentage = totalGames > 0
@@ -341,6 +349,7 @@ const blackWinPercentage = blackGames > 0
         blackDraws: blackDraws,
         blackWinPercentage: blackWinPercentage,
         opponents: opponents,
+        topOpponents: topOpponents,
         winPercentage: winPercentage,
         shortGames: shortGames,
         mediumGames: mediumGames,
