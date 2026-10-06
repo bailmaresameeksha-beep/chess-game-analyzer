@@ -147,6 +147,7 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         let blackLosses = 0;
         let blackDraws = 0;
         const opponents = {};
+        const opponentStats = {};
 
         for (const gamePgn of games) {
             const chess = new Chess();
@@ -167,6 +168,17 @@ if (headers.White.toLowerCase() === username.toLowerCase()) {
 } else {
     opponent = headers.White;
 }
+if (!opponentStats[opponent]) {
+    opponentStats[opponent] = {
+        games: 0,
+        wins: 0,
+        losses: 0,
+        draws: 0
+    };
+}
+
+opponentStats[opponent].games++;
+
 if (!opponents[opponent]) {
     opponents[opponent] = 0;
 }
@@ -206,6 +218,25 @@ if (headers.Result === "1/2-1/2") {
     } else {
         blackDraws++;
     }
+}
+if (headers.Result === "1-0") {
+    if (headers.White.toLowerCase() === username.toLowerCase()) {
+        opponentStats[opponent].wins++;
+    } else {
+        opponentStats[opponent].losses++;
+    }
+}
+
+if (headers.Result === "0-1") {
+    if (headers.Black.toLowerCase() === username.toLowerCase()) {
+        opponentStats[opponent].wins++;
+    } else {
+        opponentStats[opponent].losses++;
+    }
+}
+
+if (headers.Result === "1/2-1/2") {
+    opponentStats[opponent].draws++;
 }
 
 const moves = chess.history();
@@ -350,6 +381,7 @@ const blackWinPercentage = blackGames > 0
         blackWinPercentage: blackWinPercentage,
         opponents: opponents,
         topOpponents: topOpponents,
+        opponentStats: opponentStats,
         winPercentage: winPercentage,
         shortGames: shortGames,
         mediumGames: mediumGames,
