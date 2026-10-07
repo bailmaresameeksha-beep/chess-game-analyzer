@@ -361,6 +361,24 @@ const blackWinPercentage = blackGames > 0
     ? ((blackWins / blackGames) * 100).toFixed(2)
     : "0.00";
         console.log(opponents);
+        const opponentPerformance = Object.entries(opponentStats).map(
+    ([opponent, stats]) => {
+        const winPercentage = stats.games > 0
+            ? ((stats.wins / stats.games) * 100).toFixed(2)
+            : "0.00";
+
+        return {
+            opponent: opponent,
+            games: stats.games,
+            wins: stats.wins,
+            losses: stats.losses,
+            draws: stats.draws,
+            winPercentage: winPercentage
+        };
+    }
+);
+opponentPerformance.sort((a, b) => b.winPercentage - a.winPercentage);
+const topOpponentPerformance = opponentPerformance.slice(0, 10);
         res.json({
         username: username,
         year: year,
@@ -382,6 +400,8 @@ const blackWinPercentage = blackGames > 0
         opponents: opponents,
         topOpponents: topOpponents,
         opponentStats: opponentStats,
+        opponentPerformance: opponentPerformance,
+        topOpponentPerformance: topOpponentPerformance,
         winPercentage: winPercentage,
         shortGames: shortGames,
         mediumGames: mediumGames,
