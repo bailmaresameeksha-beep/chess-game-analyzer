@@ -119,12 +119,15 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         const games = pgn.split(/\n\n(?=\[Event )/);
 
         const analyzedGames = [];
+
         let wins = 0;
         let losses = 0;
         let draws = 0;
+
         let shortGames = 0;
         let mediumGames = 0;
         let longGames = 0;
+
         let shortWins = 0;
         let shortLosses = 0;
         let shortDraws = 0;
@@ -136,6 +139,7 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         let longWins = 0;
         let longLosses = 0;
         let longDraws = 0;
+
         let whiteGames = 0;
         let blackGames = 0;
 
@@ -146,8 +150,10 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         let blackWins = 0;
         let blackLosses = 0;
         let blackDraws = 0;
+
         const opponents = {};
         const opponentStats = {};
+        const firstMoveStats = {};
 
         for (const gamePgn of games) {
             const chess = new Chess();
@@ -158,267 +164,346 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
                 if (loaded === false) {
                     continue;
                 }
-                
 
-            const headers = chess.header();
-            let opponent;
+                const headers = chess.header();
 
-if (headers.White.toLowerCase() === username.toLowerCase()) {
-    opponent = headers.Black;
-} else {
-    opponent = headers.White;
-}
-if (!opponentStats[opponent]) {
-    opponentStats[opponent] = {
-        games: 0,
-        wins: 0,
-        losses: 0,
-        draws: 0
-    };
-}
+                let opponent;
 
-opponentStats[opponent].games++;
+                if (headers.White.toLowerCase() === username.toLowerCase()) {
+                    opponent = headers.Black;
+                } else {
+                    opponent = headers.White;
+                }
 
-if (!opponents[opponent]) {
-    opponents[opponent] = 0;
-}
+                if (!opponentStats[opponent]) {
+                    opponentStats[opponent] = {
+                        games: 0,
+                        wins: 0,
+                        losses: 0,
+                        draws: 0
+                    };
+                }
 
-opponents[opponent]++;
-            if (headers.White.toLowerCase() === username.toLowerCase()) {
-    whiteGames++;
-} else if (headers.Black.toLowerCase() === username.toLowerCase()) {
-    blackGames++;
-}
+                opponentStats[opponent].games++;
 
-if (headers.Result === "1-0") {
-    if (headers.White.toLowerCase() === username.toLowerCase()) {
-        wins++;
-        whiteWins++;
-    } else {
-        losses++;
-        blackLosses++;
-    }
-}
+                if (!opponents[opponent]) {
+                    opponents[opponent] = 0;
+                }
 
-if (headers.Result === "0-1") {
-    if (headers.Black.toLowerCase() === username.toLowerCase()) {
-        wins++;
-        blackWins++;
-    } else {
-        losses++;
-        whiteLosses++;
-    }
-}
+                opponents[opponent]++;
 
-if (headers.Result === "1/2-1/2") {
-    draws++;
+                if (headers.White.toLowerCase() === username.toLowerCase()) {
+                    whiteGames++;
+                } else if (headers.Black.toLowerCase() === username.toLowerCase()) {
+                    blackGames++;
+                }
 
-    if (headers.White.toLowerCase() === username.toLowerCase()) {
-        whiteDraws++;
-    } else {
-        blackDraws++;
-    }
-}
-if (headers.Result === "1-0") {
-    if (headers.White.toLowerCase() === username.toLowerCase()) {
-        opponentStats[opponent].wins++;
-    } else {
-        opponentStats[opponent].losses++;
-    }
-}
+                if (headers.Result === "1-0") {
+                    if (headers.White.toLowerCase() === username.toLowerCase()) {
+                        wins++;
+                        whiteWins++;
+                    } else {
+                        losses++;
+                        blackLosses++;
+                    }
+                }
 
-if (headers.Result === "0-1") {
-    if (headers.Black.toLowerCase() === username.toLowerCase()) {
-        opponentStats[opponent].wins++;
-    } else {
-        opponentStats[opponent].losses++;
-    }
-}
+                if (headers.Result === "0-1") {
+                    if (headers.Black.toLowerCase() === username.toLowerCase()) {
+                        wins++;
+                        blackWins++;
+                    } else {
+                        losses++;
+                        whiteLosses++;
+                    }
+                }
 
-if (headers.Result === "1/2-1/2") {
-    opponentStats[opponent].draws++;
-}
+                if (headers.Result === "1/2-1/2") {
+                    draws++;
 
-const moves = chess.history();
-const totalMoves = moves.length;
-const openingMoves = moves.slice(0, 10);
-if (totalMoves <= 20) {
-    shortGames++;
-} else if (totalMoves <= 40) {
-    mediumGames++;
-} else {
-    longGames++;
-}
+                    if (headers.White.toLowerCase() === username.toLowerCase()) {
+                        whiteDraws++;
+                    } else {
+                        blackDraws++;
+                    }
+                }
 
-let gameLength;
+                if (headers.Result === "1-0") {
+                    if (headers.White.toLowerCase() === username.toLowerCase()) {
+                        opponentStats[opponent].wins++;
+                    } else {
+                        opponentStats[opponent].losses++;
+                    }
+                }
 
-if (totalMoves <= 20) {
-    gameLength = "Short";
-} else if (totalMoves <= 40) {
-    gameLength = "Medium";
-} else {
-    gameLength = "Long";
-}
-if (gameLength === "Short") {
-    if (headers.Result === "1-0") {
-        if (headers.White.toLowerCase() === username.toLowerCase()) {
-            shortWins++;
-        } else {
-            shortLosses++;
-        }
-    }
+                if (headers.Result === "0-1") {
+                    if (headers.Black.toLowerCase() === username.toLowerCase()) {
+                        opponentStats[opponent].wins++;
+                    } else {
+                        opponentStats[opponent].losses++;
+                    }
+                }
 
-    if (headers.Result === "0-1") {
-        if (headers.Black.toLowerCase() === username.toLowerCase()) {
-            shortWins++;
-        } else {
-            shortLosses++;
-        }
-    }
+                if (headers.Result === "1/2-1/2") {
+                    opponentStats[opponent].draws++;
+                }
 
-    if (headers.Result === "1/2-1/2") {
-        shortDraws++;
-    }
-}
+                const moves = chess.history();
+                const totalMoves = moves.length;
 
-if (gameLength === "Medium") {
-    if (headers.Result === "1-0") {
-        if (headers.White.toLowerCase() === username.toLowerCase()) {
-            mediumWins++;
-        } else {
-            mediumLosses++;
-        }
-    }
+                const firstMove = moves[0];
 
-    if (headers.Result === "0-1") {
-        if (headers.Black.toLowerCase() === username.toLowerCase()) {
-            mediumWins++;
-        } else {
-            mediumLosses++;
-        }
-    }
+                if (!firstMoveStats[firstMove]) {
+                    firstMoveStats[firstMove] = {
+                        games: 0,
+                        wins: 0,
+                        losses: 0,
+                        draws: 0
+                    };
+                }
 
-    if (headers.Result === "1/2-1/2") {
-        mediumDraws++;
-    }
-}
+                firstMoveStats[firstMove].games++;
 
-if (gameLength === "Long") {
-    if (headers.Result === "1-0") {
-        if (headers.White.toLowerCase() === username.toLowerCase()) {
-            longWins++;
-        } else {
-            longLosses++;
-        }
-    }
+                if (headers.Result === "1-0") {
+                    if (headers.White.toLowerCase() === username.toLowerCase()) {
+                        firstMoveStats[firstMove].wins++;
+                    } else {
+                        firstMoveStats[firstMove].losses++;
+                    }
+                }
 
-    if (headers.Result === "0-1") {
-        if (headers.Black.toLowerCase() === username.toLowerCase()) {
-            longWins++;
-        } else {
-            longLosses++;
-        }
-    }
+                if (headers.Result === "0-1") {
+                    if (headers.Black.toLowerCase() === username.toLowerCase()) {
+                        firstMoveStats[firstMove].wins++;
+                    } else {
+                        firstMoveStats[firstMove].losses++;
+                    }
+                }
 
-    if (headers.Result === "1/2-1/2") {
-        longDraws++;
-    }
-}
+                if (headers.Result === "1/2-1/2") {
+                    firstMoveStats[firstMove].draws++;
+                }
 
-analyzedGames.push({
-    white: headers.White,
-    black: headers.Black,
-    result: headers.Result,
-    moves: moves,
-    totalMoves: totalMoves,
-    gameLength: gameLength,
-    openingMoves: openingMoves,
-    finalPosition: chess.fen()
-});
+                const openingMoves = moves.slice(0, 10);
+
+                if (totalMoves <= 20) {
+                    shortGames++;
+                } else if (totalMoves <= 40) {
+                    mediumGames++;
+                } else {
+                    longGames++;
+                }
+
+                let gameLength;
+
+                if (totalMoves <= 20) {
+                    gameLength = "Short";
+                } else if (totalMoves <= 40) {
+                    gameLength = "Medium";
+                } else {
+                    gameLength = "Long";
+                }
+
+                if (gameLength === "Short") {
+                    if (headers.Result === "1-0") {
+                        if (headers.White.toLowerCase() === username.toLowerCase()) {
+                            shortWins++;
+                        } else {
+                            shortLosses++;
+                        }
+                    }
+
+                    if (headers.Result === "0-1") {
+                        if (headers.Black.toLowerCase() === username.toLowerCase()) {
+                            shortWins++;
+                        } else {
+                            shortLosses++;
+                        }
+                    }
+
+                    if (headers.Result === "1/2-1/2") {
+                        shortDraws++;
+                    }
+                }
+
+                if (gameLength === "Medium") {
+                    if (headers.Result === "1-0") {
+                        if (headers.White.toLowerCase() === username.toLowerCase()) {
+                            mediumWins++;
+                        } else {
+                            mediumLosses++;
+                        }
+                    }
+
+                    if (headers.Result === "0-1") {
+                        if (headers.Black.toLowerCase() === username.toLowerCase()) {
+                            mediumWins++;
+                        } else {
+                            mediumLosses++;
+                        }
+                    }
+
+                    if (headers.Result === "1/2-1/2") {
+                        mediumDraws++;
+                    }
+                }
+
+                if (gameLength === "Long") {
+                    if (headers.Result === "1-0") {
+                        if (headers.White.toLowerCase() === username.toLowerCase()) {
+                            longWins++;
+                        } else {
+                            longLosses++;
+                        }
+                    }
+
+                    if (headers.Result === "0-1") {
+                        if (headers.Black.toLowerCase() === username.toLowerCase()) {
+                            longWins++;
+                        } else {
+                            longLosses++;
+                        }
+                    }
+
+                    if (headers.Result === "1/2-1/2") {
+                        longDraws++;
+                    }
+                }
+
+                analyzedGames.push({
+                    white: headers.White,
+                    black: headers.Black,
+                    result: headers.Result,
+                    moves: moves,
+                    totalMoves: totalMoves,
+                    gameLength: gameLength,
+                    openingMoves: openingMoves,
+                    finalPosition: chess.fen()
+                });
 
             } catch (error) {
                 console.log("Skipping game:", error.message);
             }
         }
- const opponentList = Object.entries(opponents).map(([opponent, games]) => {
-    return {
-        opponent: opponent,
-        games: games
-    };
-});      
-opponentList.sort((a, b) => b.games - a.games); 
-const topOpponents = opponentList.slice(0, 10);
+
+        const opponentList = Object.entries(opponents).map(([opponent, games]) => {
+            return {
+                opponent: opponent,
+                games: games
+            };
+        });
+
+        opponentList.sort((a, b) => b.games - a.games);
+
+        const topOpponents = opponentList.slice(0, 10);
+
         const totalGames = analyzedGames.length;
 
-const winPercentage = totalGames > 0
-    ? ((wins / totalGames) * 100).toFixed(2)
-    : "0.00";
-    const whiteWinPercentage = whiteGames > 0
-    ? ((whiteWins / whiteGames) * 100).toFixed(2)
-    : "0.00";
-
-const blackWinPercentage = blackGames > 0
-    ? ((blackWins / blackGames) * 100).toFixed(2)
-    : "0.00";
-        console.log(opponents);
-        const opponentPerformance = Object.entries(opponentStats).map(
-    ([opponent, stats]) => {
-        const winPercentage = stats.games > 0
-            ? ((stats.wins / stats.games) * 100).toFixed(2)
+        const winPercentage = totalGames > 0
+            ? ((wins / totalGames) * 100).toFixed(2)
             : "0.00";
 
-        return {
-            opponent: opponent,
-            games: stats.games,
-            wins: stats.wins,
-            losses: stats.losses,
-            draws: stats.draws,
-            winPercentage: winPercentage
-        };
-    }
-);
-opponentPerformance.sort((a, b) => b.winPercentage - a.winPercentage);
-const topOpponentPerformance = opponentPerformance.slice(0, 10);
+        const whiteWinPercentage = whiteGames > 0
+            ? ((whiteWins / whiteGames) * 100).toFixed(2)
+            : "0.00";
+
+        const blackWinPercentage = blackGames > 0
+            ? ((blackWins / blackGames) * 100).toFixed(2)
+            : "0.00";
+
+        const opponentPerformance = Object.entries(opponentStats).map(
+            ([opponent, stats]) => {
+                const winPercentage = stats.games > 0
+                    ? ((stats.wins / stats.games) * 100).toFixed(2)
+                    : "0.00";
+
+                return {
+                    opponent: opponent,
+                    games: stats.games,
+                    wins: stats.wins,
+                    losses: stats.losses,
+                    draws: stats.draws,
+                    winPercentage: winPercentage
+                };
+            }
+        );
+
+        opponentPerformance.sort((a, b) => b.winPercentage - a.winPercentage);
+
+        const topOpponentPerformance = opponentPerformance.slice(0, 10);
+
+        const firstMovePerformance = Object.entries(firstMoveStats).map(
+            ([firstMove, stats]) => {
+                const winPercentage = stats.games > 0
+                    ? ((stats.wins / stats.games) * 100).toFixed(2)
+                    : "0.00";
+
+                return {
+                    firstMove: firstMove,
+                    games: stats.games,
+                    wins: stats.wins,
+                    losses: stats.losses,
+                    draws: stats.draws,
+                    winPercentage: winPercentage
+                };
+            }
+        );
+
+        firstMovePerformance.sort((a, b) => b.games - a.games);
+
         res.json({
-        username: username,
-        year: year,
-        month: month,
-        totalGames: analyzedGames.length,
-        wins: wins,
-        losses: losses,
-        draws: draws,
-        whiteGames: whiteGames,
-        blackGames: blackGames,
-        whiteWins: whiteWins,
-        whiteLosses: whiteLosses,
-        whiteDraws: whiteDraws,
-        whiteWinPercentage: whiteWinPercentage,
-        blackWins: blackWins,
-        blackLosses: blackLosses,
-        blackDraws: blackDraws,
-        blackWinPercentage: blackWinPercentage,
-        opponents: opponents,
-        topOpponents: topOpponents,
-        opponentStats: opponentStats,
-        opponentPerformance: opponentPerformance,
-        topOpponentPerformance: topOpponentPerformance,
-        winPercentage: winPercentage,
-        shortGames: shortGames,
-        mediumGames: mediumGames,
-        longGames: longGames,
-        shortWins: shortWins,
-        shortLosses: shortLosses,
-        shortDraws: shortDraws,
+            username: username,
+            year: year,
+            month: month,
 
-        mediumWins: mediumWins,
-        mediumLosses: mediumLosses,
-        mediumDraws: mediumDraws,
+            totalGames: totalGames,
 
-        longWins: longWins,
-        longLosses: longLosses,
-        longDraws: longDraws,
-        games: analyzedGames
-    });
+            wins: wins,
+            losses: losses,
+            draws: draws,
+            winPercentage: winPercentage,
+
+            whiteGames: whiteGames,
+            blackGames: blackGames,
+
+            whiteWins: whiteWins,
+            whiteLosses: whiteLosses,
+            whiteDraws: whiteDraws,
+            whiteWinPercentage: whiteWinPercentage,
+
+            blackWins: blackWins,
+            blackLosses: blackLosses,
+            blackDraws: blackDraws,
+            blackWinPercentage: blackWinPercentage,
+
+            opponents: opponents,
+            topOpponents: topOpponents,
+
+            opponentStats: opponentStats,
+            opponentPerformance: opponentPerformance,
+            topOpponentPerformance: topOpponentPerformance,
+
+            firstMoveStats: firstMoveStats,
+            firstMovePerformance: firstMovePerformance,
+
+            shortGames: shortGames,
+            mediumGames: mediumGames,
+            longGames: longGames,
+
+            shortWins: shortWins,
+            shortLosses: shortLosses,
+            shortDraws: shortDraws,
+
+            mediumWins: mediumWins,
+            mediumLosses: mediumLosses,
+            mediumDraws: mediumDraws,
+
+            longWins: longWins,
+            longLosses: longLosses,
+            longDraws: longDraws,
+
+            games: analyzedGames
+        });
 
     } catch (error) {
         console.error(error);
