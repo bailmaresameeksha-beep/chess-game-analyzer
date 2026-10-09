@@ -448,9 +448,11 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
                 };
             }
         );
-
-        firstMovePerformance.sort((a, b) => b.games - a.games);
-
+firstMovePerformance.sort(
+    (a, b) => Number(b.winPercentage) - Number(a.winPercentage)
+);
+const topFirstMoves = firstMovePerformance.slice(0, 5);
+        
         res.json({
             username: username,
             year: year,
@@ -485,7 +487,8 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
 
             firstMoveStats: firstMoveStats,
             firstMovePerformance: firstMovePerformance,
-
+            topFirstMoves: topFirstMoves,
+            
             shortGames: shortGames,
             mediumGames: mediumGames,
             longGames: longGames,
