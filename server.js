@@ -431,23 +431,43 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         opponentPerformance.sort((a, b) => b.winPercentage - a.winPercentage);
 
         const topOpponentPerformance = opponentPerformance.slice(0, 10);
-
         const firstMovePerformance = Object.entries(firstMoveStats).map(
-            ([firstMove, stats]) => {
-                const winPercentage = stats.games > 0
-                    ? ((stats.wins / stats.games) * 100).toFixed(2)
-                    : "0.00";
+    ([firstMove, stats]) => {
+        const winPercentage = stats.games > 0
+            ? ((stats.wins / stats.games) * 100).toFixed(2)
+            : "0.00";
 
-                return {
-                    firstMove: firstMove,
-                    games: stats.games,
-                    wins: stats.wins,
-                    losses: stats.losses,
-                    draws: stats.draws,
-                    winPercentage: winPercentage
-                };
-            }
-        );
+        const drawPercentage = stats.games > 0
+            ? ((stats.draws / stats.games) * 100).toFixed(2)
+            : "0.00";
+
+        const lossPercentage = stats.games > 0
+            ? ((stats.losses / stats.games) * 100).toFixed(2)
+            : "0.00";
+
+        return {
+            firstMove: firstMove,
+            games: stats.games,
+            wins: stats.wins,
+            losses: stats.losses,
+            draws: stats.draws,
+            winPercentage: winPercentage,
+            drawPercentage: drawPercentage,
+            lossPercentage: lossPercentage
+        };
+    }
+);
+const firstMoveComparison = firstMovePerformance.map(move => ({
+    firstMove: move.firstMove,
+    games: move.games,
+    wins: move.wins,
+    draws: move.draws,
+    losses: move.losses,
+    winPercentage: move.winPercentage,
+    drawPercentage: move.drawPercentage,
+    lossPercentage: move.lossPercentage
+}));
+        
 firstMovePerformance.sort(
     (a, b) => Number(b.winPercentage) - Number(a.winPercentage)
 );
@@ -502,6 +522,7 @@ const worstFirstMove = eligibleFirstMoves.length > 0
             eligibleFirstMoves: eligibleFirstMoves,
             bestFirstMove: bestFirstMove,
             worstFirstMove: worstFirstMove,
+            firstMoveComparison: firstMoveComparison,
             
             shortGames: shortGames,
             mediumGames: mediumGames,
