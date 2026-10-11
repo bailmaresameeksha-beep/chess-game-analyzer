@@ -452,6 +452,16 @@ firstMovePerformance.sort(
     (a, b) => Number(b.winPercentage) - Number(a.winPercentage)
 );
 const topFirstMoves = firstMovePerformance.slice(0, 5);
+const eligibleFirstMoves = firstMovePerformance.filter(
+    move => move.games >= 5
+);
+const bestFirstMove = eligibleFirstMoves.length > 0
+    ? eligibleFirstMoves[0]
+    : null;
+
+const worstFirstMove = eligibleFirstMoves.length > 0
+    ? eligibleFirstMoves[eligibleFirstMoves.length - 1]
+    : null;
         
         res.json({
             username: username,
@@ -488,6 +498,10 @@ const topFirstMoves = firstMovePerformance.slice(0, 5);
             firstMoveStats: firstMoveStats,
             firstMovePerformance: firstMovePerformance,
             topFirstMoves: topFirstMoves,
+
+            eligibleFirstMoves: eligibleFirstMoves,
+            bestFirstMove: bestFirstMove,
+            worstFirstMove: worstFirstMove,
             
             shortGames: shortGames,
             mediumGames: mediumGames,
