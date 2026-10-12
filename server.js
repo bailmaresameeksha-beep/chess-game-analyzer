@@ -444,6 +444,17 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         const lossPercentage = stats.games > 0
             ? ((stats.losses / stats.games) * 100).toFixed(2)
             : "0.00";
+            let performanceCategory;
+
+if (stats.games < 5) {
+    performanceCategory = "Insufficient Data";
+} else if (Number(winPercentage) >= 60) {
+    performanceCategory = "Strong";
+} else if (Number(winPercentage) >= 40) {
+    performanceCategory = "Average";
+} else {
+    performanceCategory = "Needs Improvement";
+}
 
         return {
             firstMove: firstMove,
@@ -453,10 +464,30 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
             draws: stats.draws,
             winPercentage: winPercentage,
             drawPercentage: drawPercentage,
-            lossPercentage: lossPercentage
+            lossPercentage: lossPercentage,
+            performanceCategory: performanceCategory,
         };
     }
 );
+
+const firstMoveSummary = {
+    strong: 0,
+    average: 0,
+    needsImprovement: 0,
+    insufficientData: 0
+};
+
+for (const move of firstMovePerformance) {
+    if (move.performanceCategory === "Strong") {
+        firstMoveSummary.strong++;
+    } else if (move.performanceCategory === "Average") {
+        firstMoveSummary.average++;
+    } else if (move.performanceCategory === "Needs Improvement") {
+        firstMoveSummary.needsImprovement++;
+    } else {
+        firstMoveSummary.insufficientData++;
+    }
+}
 const firstMoveComparison = firstMovePerformance.map(move => ({
     firstMove: move.firstMove,
     games: move.games,
@@ -523,6 +554,7 @@ const worstFirstMove = eligibleFirstMoves.length > 0
             bestFirstMove: bestFirstMove,
             worstFirstMove: worstFirstMove,
             firstMoveComparison: firstMoveComparison,
+            firstMoveSummary: firstMoveSummary,
             
             shortGames: shortGames,
             mediumGames: mediumGames,
