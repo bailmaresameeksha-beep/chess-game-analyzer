@@ -403,6 +403,14 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
             ? ((wins / totalGames) * 100).toFixed(2)
             : "0.00";
 
+        const drawPercentage = totalGames > 0
+            ? ((draws / totalGames) * 100).toFixed(2)
+            : "0.00";
+
+        const lossPercentage = totalGames > 0
+            ? ((losses / totalGames) * 100).toFixed(2)
+            : "0.00";
+
         const whiteWinPercentage = whiteGames > 0
             ? ((whiteWins / whiteGames) * 100).toFixed(2)
             : "0.00";
@@ -410,7 +418,15 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         const blackWinPercentage = blackGames > 0
             ? ((blackWins / blackGames) * 100).toFixed(2)
             : "0.00";
-
+        const performanceSummary = {
+            totalGames: totalGames,
+            wins: wins,
+            losses: losses,
+            draws: draws,
+            winPercentage: winPercentage,
+            drawPercentage: drawPercentage,
+            lossPercentage: lossPercentage
+            };
         const opponentPerformance = Object.entries(opponentStats).map(
             ([opponent, stats]) => {
                 const winPercentage = stats.games > 0
@@ -553,9 +569,11 @@ const worstFirstMove = eligibleFirstMoves.length > 0
             eligibleFirstMoves: eligibleFirstMoves,
             bestFirstMove: bestFirstMove,
             worstFirstMove: worstFirstMove,
+            
             firstMoveComparison: firstMoveComparison,
             firstMoveSummary: firstMoveSummary,
-            
+            performanceSummary: performanceSummary,
+
             shortGames: shortGames,
             mediumGames: mediumGames,
             longGames: longGames,
