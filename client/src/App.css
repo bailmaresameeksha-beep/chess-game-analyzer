@@ -1,0 +1,385 @@
+
+.app {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 28px 48px;
+}
+
+.topbar {
+    min-height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #26332e;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #f1f5f2;
+    font-size: 21px;
+    font-weight: 750;
+    text-decoration: none;
+    letter-spacing: -0.7px;
+}
+
+.brand-icon {
+    color: #9ed9a8;
+    font-size: 30px;
+    margin-right: 4px;
+}
+
+.brand-accent {
+    color: #9ed9a8;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #a6b6ad;
+    font-size: 13px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background: #80d99b;
+    border-radius: 50%;
+}
+
+.hero {
+    padding: 54px 0 32px;
+}
+
+.eyebrow {
+    color: #9ed9a8;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+    margin: 0 0 12px;
+}
+
+.hero h1 {
+    color: #f1f5f2;
+    font-size: clamp(34px, 5vw, 54px);
+    letter-spacing: -2px;
+    line-height: 1.1;
+    margin: 0;
+}
+
+.hero-description {
+    color: #a6b6ad;
+    max-width: 600px;
+    font-size: 15px;
+    line-height: 1.8;
+    margin-top: 16px;
+}
+
+.search-panel,
+.panel,
+.stat-card {
+    background: #17221e;
+    border: 1px solid #293a32;
+    border-radius: 16px;
+}
+
+.search-panel {
+    padding: 20px;
+}
+
+.search-form {
+    display: grid;
+    grid-template-columns: minmax(180px, 2fr) 1fr 1fr auto;
+    align-items: end;
+    gap: 14px;
+}
+
+.search-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    color: #b9c7bf;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.search-form input,
+.search-form select {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    border: 1px solid #35463d;
+    border-radius: 9px;
+    background: #101915;
+    color: #f1f5f2;
+    padding: 0 12px;
+    font: inherit;
+}
+
+.search-form button {
+    height: 44px;
+    padding: 0 19px;
+    border: none;
+    border-radius: 9px;
+    background: #a8e3af;
+    color: #142219;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.search-form button:hover {
+    background: #c0efc5;
+}
+
+.search-form button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.message,
+.empty-state {
+    color: #a6b6ad;
+    padding: 20px 0;
+}
+
+.error-message {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #794747;
+    border-radius: 10px;
+    color: #ffb6b6;
+    background: #301e1e;
+    overflow-wrap: anywhere;
+}
+
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin: 42px 0 18px;
+}
+
+.section-heading h2,
+.panel h2 {
+    color: #f1f5f2;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+
+.period {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #202f27;
+    color: #c5d5ca;
+    font-size: 12px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.stat-card {
+    padding: 22px;
+}
+
+.stat-card p {
+    color: #a6b6ad;
+    font-size: 13px;
+    margin: 0 0 16px;
+}
+
+.stat-card h3 {
+    color: #f1f5f2;
+    font-size: 34px;
+    letter-spacing: -1px;
+    margin: 0 0 12px;
+}
+
+.stat-card .win-number,
+.win-number {
+    color: #9ee2ac;
+}
+
+.stat-card .loss-number {
+    color: #f1a1a1;
+}
+
+.stat-note {
+    color: #84988c;
+    font-size: 12px;
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 18px;
+    margin-top: 20px;
+}
+
+.panel {
+    padding: 22px;
+    min-width: 0;
+}
+
+.panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.chess-icon {
+    color: #9ed9a8;
+    font-size: 30px;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    white-space: nowrap;
+}
+
+th {
+    color: #81968a;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+}
+
+th,
+td {
+    padding: 14px 10px;
+    border-bottom: 1px solid #2a3931;
+}
+
+td {
+    color: #cbd6cf;
+    font-size: 13px;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.move-badge {
+    display: inline-block;
+    padding: 6px 9px;
+    border-radius: 6px;
+    background: #263a2d;
+    color: #b9edc2;
+    font-weight: 800;
+}
+
+.opponent-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.opponent-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 15px 0;
+    border-bottom: 1px solid #2a3931;
+}
+
+.opponent-row:last-child {
+    border-bottom: none;
+}
+
+.rank {
+    color: #81968a;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.opponent-name {
+    color: #e0e9e3;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.game-count {
+    color: #9ed9a8;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.dashboard-footer {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #26332e;
+    color: #81968a;
+    font-size: 12px;
+    text-align: center;
+}
+
+@media (max-width: 850px) {
+    .search-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .search-form label:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .app {
+        padding: 0 16px 30px;
+    }
+
+    .hero {
+        padding-top: 38px;
+    }
+
+    .search-form {
+        grid-template-columns: 1fr;
+    }
+
+    .search-form label:first-child {
+        grid-column: auto;
+    }
+
+    .search-form button {
+        width: 100%;
+    }
+
+    .stat-card {
+        padding: 16px;
+    }
+
+    .stat-card h3 {
+        font-size: 28px;
+    }
+
+    .section-heading {
+        align-items: flex-start;
+    }
+}
