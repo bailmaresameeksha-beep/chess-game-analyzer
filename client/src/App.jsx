@@ -48,7 +48,16 @@ function App() {
         loadData();
     }, []);
 
+
     const summary = data?.performanceSummary || data;
+    const totalGames = Number(summary?.totalGames ?? data?.totalGames ?? 0);
+    const wins = Number(summary?.wins ?? data?.wins ?? 0);
+    const draws = Number(summary?.draws ?? data?.draws ?? 0);
+    const losses = Number(summary?.losses ?? data?.losses ?? 0);
+
+    const percentage = (value) => {
+        return totalGames > 0 ? (value / totalGames) * 100 : 0;
+    };
 
     return (
         <main className="app">
@@ -167,6 +176,78 @@ function App() {
                             </span>
                         </article>
                     </section>
+
+                    <section className="panel result-panel">
+  <div className="panel-heading">
+    <div>
+      <p className="eyebrow">RESULT BREAKDOWN</p>
+      <h2>Win / Draw / Loss</h2>
+    </div>
+
+    <span className="period">{totalGames} games</span>
+  </div>
+
+  {totalGames > 0 ? (
+    <>
+      <div
+        className="result-bar"
+        role="img"
+        aria-label={`${wins} wins, ${draws} draws, ${losses} losses`}
+      >
+        {wins > 0 && (
+          <div
+            className="result-segment result-wins"
+            style={{ width: `${percentage(wins)}%` }}
+          />
+        )}
+
+        {draws > 0 && (
+          <div
+            className="result-segment result-draws"
+            style={{ width: `${percentage(draws)}%` }}
+          />
+        )}
+
+        {losses > 0 && (
+          <div
+            className="result-segment result-losses"
+            style={{ width: `${percentage(losses)}%` }}
+          />
+        )}
+      </div>
+
+      <div className="result-legend">
+        <div>
+          <span className="legend-dot result-wins" />
+          <span>Wins</span>
+          <strong>
+            {wins} ({percentage(wins).toFixed(1)}%)
+          </strong>
+        </div>
+
+        <div>
+          <span className="legend-dot result-draws" />
+          <span>Draws</span>
+          <strong>
+            {draws} ({percentage(draws).toFixed(1)}%)
+          </strong>
+        </div>
+
+        <div>
+          <span className="legend-dot result-losses" />
+          <span>Losses</span>
+          <strong>
+            {losses} ({percentage(losses).toFixed(1)}%)
+          </strong>
+        </div>
+      </div>
+    </>
+  ) : (
+    <p className="empty-state">
+      No games available for this period.
+    </p>
+  )}
+</section>
 
                     <section className="content-grid">
                         <article className="panel">
