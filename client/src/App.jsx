@@ -50,6 +50,47 @@ function App() {
 
 
     const summary = data?.performanceSummary || data;
+    const whiteStats = {
+  games: Number(data?.whiteGames || 0),
+  wins: Number(data?.whiteWins || 0),
+  losses: Number(data?.whiteLosses || 0),
+  draws: Number(data?.whiteDraws || 0),
+  winRate: Number(data?.whiteWinPercentage || 0),
+};
+
+const blackStats = {
+  games: Number(data?.blackGames || 0),
+  wins: Number(data?.blackWins || 0),
+  losses: Number(data?.blackLosses || 0),
+  draws: Number(data?.blackDraws || 0),
+  winRate: Number(data?.blackWinPercentage || 0),
+};
+const gameLengthStats = [
+  {
+    name: "Short Games",
+    description: "20 moves or fewer",
+    games: Number(data?.shortGames || 0),
+    wins: Number(data?.shortWins || 0),
+    draws: Number(data?.shortDraws || 0),
+    losses: Number(data?.shortLosses || 0),
+  },
+  {
+    name: "Medium Games",
+    description: "21–40 moves",
+    games: Number(data?.mediumGames || 0),
+    wins: Number(data?.mediumWins || 0),
+    draws: Number(data?.mediumDraws || 0),
+    losses: Number(data?.mediumLosses || 0),
+  },
+  {
+    name: "Long Games",
+    description: "More than 40 moves",
+    games: Number(data?.longGames || 0),
+    wins: Number(data?.longWins || 0),
+    draws: Number(data?.longDraws || 0),
+    losses: Number(data?.longLosses || 0),
+  },
+];
     const totalGames = Number(summary?.totalGames ?? data?.totalGames ?? 0);
     const wins = Number(summary?.wins ?? data?.wins ?? 0);
     const draws = Number(summary?.draws ?? data?.draws ?? 0);
@@ -247,6 +288,123 @@ function App() {
       No games available for this period.
     </p>
   )}
+</section>
+
+<section className="side-performance">
+  <div className="panel side-card">
+    <p className="eyebrow">PIECES PERFORMANCE</p>
+    <h2>White Pieces</h2>
+
+    <div className="side-win-rate">
+      {whiteStats.winRate.toFixed(2)}%
+      <span>Win rate</span>
+    </div>
+
+    <div className="side-stat-row">
+      <span>Games played</span>
+      <strong>{whiteStats.games}</strong>
+    </div>
+
+    <div className="side-stat-row">
+      <span>Wins</span>
+      <strong>{whiteStats.wins}</strong>
+    </div>
+
+    <div className="side-stat-row">
+      <span>Draws</span>
+      <strong>{whiteStats.draws}</strong>
+    </div>
+
+    <div className="side-stat-row">
+      <span>Losses</span>
+      <strong>{whiteStats.losses}</strong>
+    </div>
+  </div>
+
+  <div className="panel side-card">
+    <p className="eyebrow">PIECES PERFORMANCE</p>
+    <h2>Black Pieces</h2>
+
+    <div className="side-win-rate">
+      {blackStats.winRate.toFixed(2)}%
+      <span>Win rate</span>
+    </div>
+
+    <div className="side-stat-row">
+      <span>Games played</span>
+      <strong>{blackStats.games}</strong>
+    </div>
+
+    <div className="side-stat-row">
+      <span>Wins</span>
+      <strong>{blackStats.wins}</strong>
+    </div>
+
+    <div className="side-stat-row">
+      <span>Draws</span>
+      <strong>{blackStats.draws}</strong>
+    </div>
+
+    <div className="side-stat-row">
+      <span>Losses</span>
+      <strong>{blackStats.losses}</strong>
+    </div>
+  </div>
+</section>
+<section className="panel game-length-panel">
+  <div className="panel-heading">
+    <div>
+      <p className="eyebrow">GAME ANALYSIS</p>
+      <h2>Performance by Game Length</h2>
+    </div>
+  </div>
+
+  <div className="game-length-grid">
+    {gameLengthStats.map((item) => {
+      const winRate =
+        item.games > 0 ? (item.wins / item.games) * 100 : 0;
+
+      return (
+        <div className="length-card" key={item.name}>
+          <h3>{item.name}</h3>
+          <p className="length-description">
+            {item.description}
+          </p>
+
+          <div className="length-total">
+            {item.games}
+            <span> games</span>
+          </div>
+
+          <div className="length-progress">
+            <div
+              className="length-progress-fill"
+              style={{ width: `${winRate}%` }}
+            />
+          </div>
+
+          <div className="length-win-rate">
+            Win rate: {winRate.toFixed(2)}%
+          </div>
+
+          <div className="length-result-row">
+            <span>Wins</span>
+            <strong>{item.wins}</strong>
+          </div>
+
+          <div className="length-result-row">
+            <span>Draws</span>
+            <strong>{item.draws}</strong>
+          </div>
+
+          <div className="length-result-row">
+            <span>Losses</span>
+            <strong>{item.losses}</strong>
+          </div>
+        </div>
+      );
+    })}
+  </div>
 </section>
 
                     <section className="content-grid">
