@@ -1,499 +1,422 @@
-
 import { useEffect, useState } from "react";
 import "./App.css";
 
 function App() {
-    const [username, setUsername] = useState("Hikaru");
-    const [year, setYear] = useState("2014");
-    const [month, setMonth] = useState("03");
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+  const [username, setUsername] = useState("Hikaru");
+  const [year, setYear] = useState("2014");
+  const [month, setMonth] = useState("03");
 
-    async function loadData(event) {
-        if (event) event.preventDefault();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-        if (!username.trim() || !/^\d{4}$/.test(year) ||
-            !/^(0[1-9]|1[0-2])$/.test(month)) {
-            setError("Enter a valid username, year and month.");
-            return;
-        }
+  const summary = data?.performanceSummary || data || {};
 
-        setLoading(true);
-        setError("");
-        setData(null);
+  const number = (value) => Number(value || 0);
 
-        try {
-            const response = await fetch(
-                `/api/analyze/${encodeURIComponent(username.trim())}/${year}/${month}`
-            );
+  const percentage = (value, total) =>
+    total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
 
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || "Could not load game data.");
-            }
-
-            setData(result);
-        } catch (err) {
-            setError(
-                `${err.message}. Make sure your Express server is running on port 3001.`
-            );
-        } finally {
-            setLoading(false);
-        }
+  const loadData = async () => {
+    if (!username.trim()) {
+      setError("Please enter a Chess.com username.");
+      return;
     }
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    if (
+      !/^\d{4}$/.test(String(year)) ||
+      Number(year) < 2007 ||
+      Number(year) > new Date().getFullYear()
+    ) {
+      setError("Please enter a valid year.");
+      return;
+    }
 
+    if (
+      !/^\d{1,2}$/.test(String(month)) ||
+      Number(month) < 1 ||
+      Number(month) > 12
+    ) {
+      setError("Please enter a month from 1 to 12.");
+      return;
+    }
 
-    const summary = data?.performanceSummary || data;
-    const whiteStats = {
-  games: Number(data?.whiteGames || 0),
-  wins: Number(data?.whiteWins || 0),
-  losses: Number(data?.whiteLosses || 0),
-  draws: Number(data?.whiteDraws || 0),
-  winRate: Number(data?.whiteWinPercentage || 0),
-};
+    setLoading(true);
+    setError("");
 
-const blackStats = {
-  games: Number(data?.blackGames || 0),
-  wins: Number(data?.blackWins || 0),
-  losses: Number(data?.blackLosses || 0),
-  draws: Number(data?.blackDraws || 0),
-  winRate: Number(data?.blackWinPercentage || 0),
-};
-const gameLengthStats = [
-  {
-    name: "Short Games",
-    description: "20 moves or fewer",
-    games: Number(data?.shortGames || 0),
-    wins: Number(data?.shortWins || 0),
-    draws: Number(data?.shortDraws || 0),
-    losses: Number(data?.shortLosses || 0),
-  },
-  {
-    name: "Medium Games",
-    description: "21–40 moves",
-    games: Number(data?.mediumGames || 0),
-    wins: Number(data?.mediumWins || 0),
-    draws: Number(data?.mediumDraws || 0),
-    losses: Number(data?.mediumLosses || 0),
-  },
-  {
-    name: "Long Games",
-    description: "More than 40 moves",
-    games: Number(data?.longGames || 0),
-    wins: Number(data?.longWins || 0),
-    draws: Number(data?.longDraws || 0),
-    losses: Number(data?.longLosses || 0),
-  },
-];
-    const totalGames = Number(summary?.totalGames ?? data?.totalGames ?? 0);
-    const wins = Number(summary?.wins ?? data?.wins ?? 0);
-    const draws = Number(summary?.draws ?? data?.draws ?? 0);
-    const losses = Number(summary?.losses ?? data?.losses ?? 0);
+    try {
+      const url = `/api/analyze/${encodeURIComponent(
+        username.trim()
+      )}/${year}/${String(month).padStart(2, "0")}`;
 
-    const percentage = (value) => {
-        return totalGames > 0 ? (value / totalGames) * 100 : 0;
-    };
+      const response = await fetch(url);
+      const result = await response.json();
 
-    return (
-        <main className="app">
-            <header className="topbar">
-                <a className="brand" href="/">
-                    <span className="brand-icon">♞</span>
-                    Chess<span className="brand-accent">Analyzer</span>
-                </a>
-                <span className="status">
-                    <span className="status-dot"></span>
-                    Game Analytics
-                </span>
-            </header>
+      if (!response.ok) {
+        throw new Error(
+          result.message ||
+            result.error ||
+            "Unable to fetch chess game data."
+        );
+      }
 
-            <section className="hero">
-                <p className="eyebrow">YOUR CHESS. YOUR DATA.</p>
-                <h1>Understand your game.</h1>
-                <p className="hero-description">
-                    Explore your results, discover patterns and understand
-                    your chess performance using your game history.
-                </p>
-            </section>
-
-            <section className="search-panel">
-                <form onSubmit={loadData} className="search-form">
-                    <label>
-                        Chess.com username
-                        <input
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Enter username"
-                        />
-                    </label>
-
-                    <label>
-                        Year
-                        <input
-                            value={year}
-                            onChange={(e) => setYear(e.target.value)}
-                            inputMode="numeric"
-                            maxLength={4}
-                        />
-                    </label>
-
-                    <label>
-                        Month
-                        <select
-                            value={month}
-                            onChange={(e) => setMonth(e.target.value)}
-                        >
-                            {Array.from({ length: 12 }, (_, i) => {
-                                const value = String(i + 1).padStart(2, "0");
-                                return (
-                                    <option key={value} value={value}>
-                                        {value}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                    </label>
-
-                    <button type="submit" disabled={loading}>
-                        {loading ? "Loading..." : "Analyze games →"}
-                    </button>
-                </form>
-            </section>
-
-            {loading && (
-                <p className="message">Loading chess statistics...</p>
-            )}
-
-            {error && (
-                <div className="error-message">{error}</div>
-            )}
-
-            {data && summary && (
-                <>
-                    <section className="section-heading">
-                        <div>
-                            <p className="eyebrow">PERFORMANCE OVERVIEW</p>
-                            <h2>{data.username}'s dashboard</h2>
-                        </div>
-                        <span className="period">
-                            {data.year} / {data.month}
-                        </span>
-                    </section>
-
-                    <section className="stats-grid">
-                        <article className="stat-card">
-                            <p>Total games</p>
-                            <h3>{summary.totalGames ?? data.totalGames ?? 0}</h3>
-                            <span className="stat-note">Games analyzed</span>
-                        </article>
-
-                        <article className="stat-card">
-                            <p>Wins</p>
-                            <h3 className="win-number">{summary.wins ?? 0}</h3>
-                            <span className="stat-note">
-                                {summary.winPercentage ?? data.winPercentage ?? "0.00"}% win rate
-                            </span>
-                        </article>
-
-                        <article className="stat-card">
-                            <p>Draws</p>
-                            <h3>{summary.draws ?? 0}</h3>
-                            <span className="stat-note">
-                                {summary.drawPercentage ?? "0.00"}% draw rate
-                            </span>
-                        </article>
-
-                        <article className="stat-card">
-                            <p>Losses</p>
-                            <h3 className="loss-number">{summary.losses ?? 0}</h3>
-                            <span className="stat-note">
-                                {summary.lossPercentage ?? "0.00"}% loss rate
-                            </span>
-                        </article>
-                    </section>
-
-                    <section className="panel result-panel">
-  <div className="panel-heading">
-    <div>
-      <p className="eyebrow">RESULT BREAKDOWN</p>
-      <h2>Win / Draw / Loss</h2>
-    </div>
-
-    <span className="period">{totalGames} games</span>
-  </div>
-
-  {totalGames > 0 ? (
-    <>
-      <div
-        className="result-bar"
-        role="img"
-        aria-label={`${wins} wins, ${draws} draws, ${losses} losses`}
-      >
-        {wins > 0 && (
-          <div
-            className="result-segment result-wins"
-            style={{ width: `${percentage(wins)}%` }}
-          />
-        )}
-
-        {draws > 0 && (
-          <div
-            className="result-segment result-draws"
-            style={{ width: `${percentage(draws)}%` }}
-          />
-        )}
-
-        {losses > 0 && (
-          <div
-            className="result-segment result-losses"
-            style={{ width: `${percentage(losses)}%` }}
-          />
-        )}
-      </div>
-
-      <div className="result-legend">
-        <div>
-          <span className="legend-dot result-wins" />
-          <span>Wins</span>
-          <strong>
-            {wins} ({percentage(wins).toFixed(1)}%)
-          </strong>
-        </div>
-
-        <div>
-          <span className="legend-dot result-draws" />
-          <span>Draws</span>
-          <strong>
-            {draws} ({percentage(draws).toFixed(1)}%)
-          </strong>
-        </div>
-
-        <div>
-          <span className="legend-dot result-losses" />
-          <span>Losses</span>
-          <strong>
-            {losses} ({percentage(losses).toFixed(1)}%)
-          </strong>
-        </div>
-      </div>
-    </>
-  ) : (
-    <p className="empty-state">
-      No games available for this period.
-    </p>
-  )}
-</section>
-
-<section className="side-performance">
-  <div className="panel side-card">
-    <p className="eyebrow">PIECES PERFORMANCE</p>
-    <h2>White Pieces</h2>
-
-    <div className="side-win-rate">
-      {whiteStats.winRate.toFixed(2)}%
-      <span>Win rate</span>
-    </div>
-
-    <div className="side-stat-row">
-      <span>Games played</span>
-      <strong>{whiteStats.games}</strong>
-    </div>
-
-    <div className="side-stat-row">
-      <span>Wins</span>
-      <strong>{whiteStats.wins}</strong>
-    </div>
-
-    <div className="side-stat-row">
-      <span>Draws</span>
-      <strong>{whiteStats.draws}</strong>
-    </div>
-
-    <div className="side-stat-row">
-      <span>Losses</span>
-      <strong>{whiteStats.losses}</strong>
-    </div>
-  </div>
-
-  <div className="panel side-card">
-    <p className="eyebrow">PIECES PERFORMANCE</p>
-    <h2>Black Pieces</h2>
-
-    <div className="side-win-rate">
-      {blackStats.winRate.toFixed(2)}%
-      <span>Win rate</span>
-    </div>
-
-    <div className="side-stat-row">
-      <span>Games played</span>
-      <strong>{blackStats.games}</strong>
-    </div>
-
-    <div className="side-stat-row">
-      <span>Wins</span>
-      <strong>{blackStats.wins}</strong>
-    </div>
-
-    <div className="side-stat-row">
-      <span>Draws</span>
-      <strong>{blackStats.draws}</strong>
-    </div>
-
-    <div className="side-stat-row">
-      <span>Losses</span>
-      <strong>{blackStats.losses}</strong>
-    </div>
-  </div>
-</section>
-<section className="panel game-length-panel">
-  <div className="panel-heading">
-    <div>
-      <p className="eyebrow">GAME ANALYSIS</p>
-      <h2>Performance by Game Length</h2>
-    </div>
-  </div>
-
-  <div className="game-length-grid">
-    {gameLengthStats.map((item) => {
-      const winRate =
-        item.games > 0 ? (item.wins / item.games) * 100 : 0;
-
-      return (
-        <div className="length-card" key={item.name}>
-          <h3>{item.name}</h3>
-          <p className="length-description">
-            {item.description}
-          </p>
-
-          <div className="length-total">
-            {item.games}
-            <span> games</span>
-          </div>
-
-          <div className="length-progress">
-            <div
-              className="length-progress-fill"
-              style={{ width: `${winRate}%` }}
-            />
-          </div>
-
-          <div className="length-win-rate">
-            Win rate: {winRate.toFixed(2)}%
-          </div>
-
-          <div className="length-result-row">
-            <span>Wins</span>
-            <strong>{item.wins}</strong>
-          </div>
-
-          <div className="length-result-row">
-            <span>Draws</span>
-            <strong>{item.draws}</strong>
-          </div>
-
-          <div className="length-result-row">
-            <span>Losses</span>
-            <strong>{item.losses}</strong>
-          </div>
-        </div>
+      setData(result);
+    } catch (err) {
+      setError(
+        err.message || "Something went wrong. Please try again."
       );
-    })}
-  </div>
-</section>
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                    <section className="content-grid">
-                        <article className="panel">
-                            <div className="panel-heading">
-                                <div>
-                                    <p className="eyebrow">OPENING INSIGHTS</p>
-                                    <h2>First move performance</h2>
-                                </div>
-                                <span className="chess-icon">♟</span>
-                            </div>
+  useEffect(() => {
+    loadData();
+  }, []);
 
-                            {data.firstMovePerformance?.length > 0 ? (
-                                <div className="table-wrap">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Move</th>
-                                                <th>Games</th>
-                                                <th>Wins</th>
-                                                <th>Win rate</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {data.firstMovePerformance.slice(0, 8).map((move) => (
-                                                <tr key={move.firstMove}>
-                                                    <td>
-                                                        <span className="move-badge">
-                                                            {move.firstMove}
-                                                        </span>
-                                                    </td>
-                                                    <td>{move.games}</td>
-                                                    <td>{move.wins}</td>
-                                                    <td className="win-number">
-                                                        {move.winPercentage}%
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <p className="empty-state">
-                                    No first-move data available.
-                                </p>
-                            )}
-                        </article>
+  const totalGames = number(summary.totalGames ?? data?.totalGames);
+  const wins = number(summary.wins ?? data?.wins);
+  const draws = number(summary.draws ?? data?.draws);
+  const losses = number(summary.losses ?? data?.losses);
 
-                        <article className="panel">
-                            <div className="panel-heading">
-                                <div>
-                                    <p className="eyebrow">YOUR OPPONENTS</p>
-                                    <h2>Most played</h2>
-                                </div>
-                                <span className="chess-icon">♜</span>
-                            </div>
+  const sides = [
+    {
+      name: "White Pieces",
+      games: number(data?.whiteGames),
+      wins: number(data?.whiteWins),
+      draws: number(data?.whiteDraws),
+      losses: number(data?.whiteLosses),
+      rate: number(data?.whiteWinPercentage),
+    },
+    {
+      name: "Black Pieces",
+      games: number(data?.blackGames),
+      wins: number(data?.blackWins),
+      draws: number(data?.blackDraws),
+      losses: number(data?.blackLosses),
+      rate: number(data?.blackWinPercentage),
+    },
+  ];
 
-                            {data.topOpponents?.length > 0 ? (
-                                <div className="opponent-list">
-                                    {data.topOpponents.slice(0, 8).map((opponent, index) => (
-                                        <div className="opponent-row" key={opponent.opponent}>
-                                            <span className="rank">
-                                                {String(index + 1).padStart(2, "0")}
-                                            </span>
-                                            <span className="opponent-name">
-                                                {opponent.opponent}
-                                            </span>
-                                            <span className="game-count">
-                                                {opponent.games} games
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="empty-state">
-                                    No opponent data available.
-                                </p>
-                            )}
-                        </article>
-                    </section>
+  const lengths = [
+    {
+      name: "Short Games",
+      games: number(data?.shortGames),
+      wins: number(data?.shortWins),
+      draws: number(data?.shortDraws),
+      losses: number(data?.shortLosses),
+    },
+    {
+      name: "Medium Games",
+      games: number(data?.mediumGames),
+      wins: number(data?.mediumWins),
+      draws: number(data?.mediumDraws),
+      losses: number(data?.mediumLosses),
+    },
+    {
+      name: "Long Games",
+      games: number(data?.longGames),
+      wins: number(data?.longWins),
+      draws: number(data?.longDraws),
+      losses: number(data?.longLosses),
+    },
+  ];
 
-                    <footer className="dashboard-footer">
-                        Data from Chess.com public game archives ·
-                        Built with React and Express
-                    </footer>
-                </>
+  return (
+    <main className="dashboard">
+      <header className="dashboard-header">
+        <div>
+          <p className="eyebrow">CHESS ANALYTICS</p>
+          <h1>Chess Game Analyzer</h1>
+          <p className="subtitle">
+            Explore your Chess.com game performance.
+          </p>
+        </div>
+      </header>
+
+      <section className="panel search-panel">
+        <h2>Analyze a player</h2>
+
+        <form
+          className="search-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            loadData();
+          }}
+        >
+          <label>
+            Chess.com username
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="Enter username"
+              disabled={loading}
+            />
+          </label>
+
+          <label>
+            Year
+            <input
+              type="number"
+              min="2007"
+              max={new Date().getFullYear()}
+              value={year}
+              onChange={(event) => setYear(event.target.value)}
+              disabled={loading}
+            />
+          </label>
+
+          <label>
+            Month
+            <select
+              value={month}
+              onChange={(event) => setMonth(event.target.value)}
+              disabled={loading}
+            >
+              {Array.from({ length: 12 }, (_, index) => {
+                const value = String(index + 1).padStart(2, "0");
+
+                return (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+
+          <button
+            className="analyze-button"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? "Analyzing..." : "Analyze Games"}
+          </button>
+        </form>
+      </section>
+
+      {loading && (
+        <div className="status-message loading-message" role="status">
+          <span className="loader" />
+          <span>Fetching games and analyzing performance...</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="status-message error-message" role="alert">
+          <strong>Analysis failed</strong>
+          <p>{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && data && (
+        <>
+          <section className="stats-grid">
+            <div className="panel stat-card">
+              <p>Total Games</p>
+              <h2>{totalGames}</h2>
+            </div>
+
+            <div className="panel stat-card">
+              <p>Wins</p>
+              <h2>{wins}</h2>
+            </div>
+
+            <div className="panel stat-card">
+              <p>Draws</p>
+              <h2>{draws}</h2>
+            </div>
+
+            <div className="panel stat-card">
+              <p>Losses</p>
+              <h2>{losses}</h2>
+            </div>
+          </section>
+
+          <section className="panel result-panel">
+            <p className="eyebrow">RESULT BREAKDOWN</p>
+            <h2>Win / Draw / Loss</h2>
+
+            {totalGames > 0 ? (
+              <>
+                <div className="result-bar">
+                  {wins > 0 && (
+                    <div
+                      className="result-segment result-wins"
+                      style={{
+                        width: `${(wins / totalGames) * 100}%`,
+                      }}
+                    />
+                  )}
+
+                  {draws > 0 && (
+                    <div
+                      className="result-segment result-draws"
+                      style={{
+                        width: `${(draws / totalGames) * 100}%`,
+                      }}
+                    />
+                  )}
+
+                  {losses > 0 && (
+                    <div
+                      className="result-segment result-losses"
+                      style={{
+                        width: `${(losses / totalGames) * 100}%`,
+                      }}
+                    />
+                  )}
+                </div>
+
+                <div className="result-legend">
+                  <span>Wins: {percentage(wins, totalGames)}%</span>
+                  <span>Draws: {percentage(draws, totalGames)}%</span>
+                  <span>Losses: {percentage(losses, totalGames)}%</span>
+                </div>
+              </>
+            ) : (
+              <p>No games available for this period.</p>
             )}
-        </main>
-    );
+          </section>
+
+          <section className="side-performance">
+            {sides.map((side) => (
+              <div className="panel side-card" key={side.name}>
+                <p className="eyebrow">PIECES PERFORMANCE</p>
+                <h2>{side.name}</h2>
+
+                <div className="side-win-rate">
+                  {side.rate.toFixed(2)}%
+                  <span>Win rate</span>
+                </div>
+
+                <div className="side-stat-row">
+                  <span>Games</span>
+                  <strong>{side.games}</strong>
+                </div>
+                <div className="side-stat-row">
+                  <span>Wins</span>
+                  <strong>{side.wins}</strong>
+                </div>
+                <div className="side-stat-row">
+                  <span>Draws</span>
+                  <strong>{side.draws}</strong>
+                </div>
+                <div className="side-stat-row">
+                  <span>Losses</span>
+                  <strong>{side.losses}</strong>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          <section className="panel game-length-panel">
+            <p className="eyebrow">GAME ANALYSIS</p>
+            <h2>Performance by Game Length</h2>
+
+            <div className="game-length-grid">
+              {lengths.map((item) => (
+                <div className="length-card" key={item.name}>
+                  <h3>{item.name}</h3>
+                  <p>{item.games} games</p>
+
+                  <div className="length-progress">
+                    <div
+                      className="length-progress-fill"
+                      style={{
+                        width: `${item.games > 0
+                          ? (item.wins / item.games) * 100
+                          : 0}%`,
+                      }}
+                    />
+                  </div>
+
+                  <p>
+                    Win rate: {percentage(item.wins, item.games)}%
+                  </p>
+                  <div className="length-result-row">
+                    <span>Wins</span>
+                    <strong>{item.wins}</strong>
+                  </div>
+                  <div className="length-result-row">
+                    <span>Draws</span>
+                    <strong>{item.draws}</strong>
+                  </div>
+                  <div className="length-result-row">
+                    <span>Losses</span>
+                    <strong>{item.losses}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="content-grid">
+            <div className="panel">
+              <p className="eyebrow">OPENING ANALYSIS</p>
+              <h2>First Move Performance</h2>
+
+              {data.firstMovePerformance?.length ? (
+                <div className="table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Move</th>
+                        <th>Games</th>
+                        <th>Wins</th>
+                        <th>Win %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.firstMovePerformance
+                        .slice(0, 8)
+                        .map((move, index) => (
+                          <tr key={`${move.move}-${index}`}>
+                            <td>{move.move}</td>
+                            <td>{move.games}</td>
+                            <td>{move.wins}</td>
+                            <td>
+                              {number(move.winPercentage).toFixed(2)}%
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p>No opening data available.</p>
+              )}
+            </div>
+
+            <div className="panel">
+              <p className="eyebrow">OPPONENT ANALYSIS</p>
+              <h2>Top Opponents</h2>
+
+              {data.topOpponents?.length ? (
+                data.topOpponents.slice(0, 8).map((opponent, index) => (
+                  <div
+                    className="side-stat-row"
+                    key={`${opponent.username || opponent.opponent || index}`}
+                  >
+                    <span>
+                      {opponent.username || opponent.opponent || "Unknown"}
+                    </span>
+                    <strong>{opponent.games ?? 0} games</strong>
+                  </div>
+                ))
+              ) : (
+                <p>No opponent data available.</p>
+              )}
+            </div>
+          </section>
+        </>
+      )}
+
+      <footer className="dashboard-footer">
+        Chess.com public game archives · React + Express
+      </footer>
+    </main>
+  );
 }
 
 export default App;
