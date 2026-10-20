@@ -372,7 +372,7 @@ function App() {
                         .slice(0, 8)
                         .map((move, index) => (
                           <tr key={`${move.move}-${index}`}>
-                            <td>{move.move}</td>
+                            <td>{move.firstMove}</td>
                             <td>{move.games}</td>
                             <td>{move.wins}</td>
                             <td>

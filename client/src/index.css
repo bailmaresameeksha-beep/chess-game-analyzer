@@ -32,3 +32,36 @@ select:focus-visible {
     outline: 2px solid #a8e3af;
     outline-offset: 3px;
 }
+/* Day 28: Responsive layout improvements */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  width: 100%;
+  min-width: 320px;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
