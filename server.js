@@ -1,144 +1,206 @@
+
 const express = require("express");
 const { Chess } = require("chess.js");
 
 const app = express();
+const PORT = process.env.PORT || 3001;
+
+const HEADERS = {
+    "User-Agent": "ChessGameAnalyzer/1.0 (learning project)"
+};
+
+async function chessComFetch(url) {
+    const response = await fetch(url, { headers: HEADERS });
+
+    if (!response.ok) {
+        const error = new Error(`Chess.com API returned ${response.status}`);
+        error.status = response.status;
+        throw error;
+    }
+
+    return response;
+}
+
+function validateMonth(year, month) {
+    return /^\d{4}$/.test(year) &&
+        /^\d{2}$/.test(month) &&
+        Number(month) >= 1 &&
+        Number(month) <= 12;
+}
+
+function percentage(value, total) {
+    return total > 0 ? ((value / total) * 100).toFixed(2) : "0.00";
+}
+
+function getGameLength(totalMoves) {
+    if (totalMoves <= 20) return "Short";
+    if (totalMoves <= 40) return "Medium";
+    return "Long";
+}
+
+function createOutcomeStats() {
+    return { games: 0, wins: 0, losses: 0, draws: 0 };
+}
+
+function recordOutcome(stats, outcome) {
+    stats.games++;
+
+    if (outcome === "win") stats.wins++;
+    else if (outcome === "loss") stats.losses++;
+    else if (outcome === "draw") stats.draws++;
+}
+
+function getPlayerOutcome(result, color) {
+    if (result === "1/2-1/2") return "draw";
+
+    if (result === "1-0") {
+        return color === "white" ? "win" : "loss";
+    }
+
+    if (result === "0-1") {
+        return color === "black" ? "win" : "loss";
+    }
+
+    return "unknown";
+}
+
+function getPerformanceCategory(stats) {
+    if (stats.games < 5) return "Insufficient Data";
+
+    const winRate = Number(percentage(stats.wins, stats.games));
+
+    if (winRate >= 60) return "Strong";
+    if (winRate >= 40) return "Average";
+    return "Needs Improvement";
+}
 
 app.get("/", (req, res) => {
     res.send("Welcome to my Chess Game Analyzer!");
 });
 
+// Get player profile
 app.get("/api/player/:username", async (req, res) => {
-    const username = req.params.username;
+    const { username } = req.params;
 
     try {
-        const response = await fetch(
-            `https://api.chess.com/pub/player/${username}`,
-            {
-                headers: {
-                    "User-Agent": "ChessGameAnalyzer/1.0 (learning project)"
-                }
-            }
+        const response = await chessComFetch(
+            `https://api.chess.com/pub/player/${encodeURIComponent(username)}`
         );
 
-        if (!response.ok) {
-            return res.status(response.status).json({
-                error: "Player not found"
-            });
-        }
-
-        const data = await response.json();
-
-        res.json(data);
+        res.json(await response.json());
     } catch (error) {
-        res.status(500).json({
-            error: "Something went wrong"
+        res.status(error.status || 500).json({
+            error: error.status === 404
+                ? "Player not found"
+                : "Unable to fetch player profile",
+            details: error.message
         });
     }
 });
 
+// Get all monthly archive URLs for a player
 app.get("/api/player/:username/games", async (req, res) => {
-    const username = req.params.username;
+    const { username } = req.params;
 
     try {
-        const archiveResponse = await fetch(
-            `https://api.chess.com/pub/player/${username}/games/archives`,
-            {
-                headers: {
-                    "User-Agent": "ChessGameAnalyzer/1.0 (learning project)"
-                }
-            }
+        const response = await chessComFetch(
+            `https://api.chess.com/pub/player/${encodeURIComponent(username)}/games/archives`
         );
 
-        if (!archiveResponse.ok) {
-            return res.status(archiveResponse.status).json({
-                error: "Player archives not found"
-            });
-        }
-
-        const archives = await archiveResponse.json();
-
-        res.json(archives);
+        res.json(await response.json());
     } catch (error) {
-        res.status(500).json({
-            error: "Something went wrong"
+        res.status(error.status || 500).json({
+            error: "Unable to fetch player archives",
+            details: error.message
         });
     }
 });
 
+// Get games for a particular month
 app.get("/api/player/:username/games/:year/:month", async (req, res) => {
     const { username, year, month } = req.params;
 
+    if (!validateMonth(year, month)) {
+        return res.status(400).json({
+            error: "Invalid year or month. Use a four-digit year and month from 01 to 12."
+        });
+    }
+
     try {
-        const response = await fetch(
-            `https://api.chess.com/pub/player/${username}/games/${year}/${month}/pgn`,
-            {
-                headers: {
-                    "User-Agent": "ChessGameAnalyzer/1.0 (learning project)"
-                }
-            }
+        const response = await chessComFetch(
+            `https://api.chess.com/pub/player/${encodeURIComponent(username)}/games/${year}/${month}`
         );
 
-        if (!response.ok) {
-            return res.status(response.status).json({
-                error: "Games not found"
-            });
-        }
+        const data = await response.json();
+        const games = Array.isArray(data.games) ? data.games : [];
 
-        const pgn = await response.text();
-
-        res.type("text/plain");
-        res.send(pgn);
+        res.json({
+            username,
+            year,
+            month,
+            totalGames: games.length,
+            games: games.map(game => ({
+                url: game.url,
+                pgnAvailable: Boolean(game.pgn),
+                timeControl: game.time_control,
+                rated: game.rated,
+                endTime: game.end_time,
+                white: game.white?.username,
+                whiteRating: game.white?.rating,
+                black: game.black?.username,
+                blackRating: game.black?.rating,
+                result: game.white?.result === "win"
+                    ? "1-0"
+                    : game.black?.result === "win"
+                        ? "0-1"
+                        : game.white?.result === "agreed" ||
+                          game.white?.result === "repetition" ||
+                          game.white?.result === "stalemate" ||
+                          game.white?.result === "insufficient" ||
+                          game.white?.result === "50move" ||
+                          game.white?.result === "timevsinsufficient" ||
+                          game.white?.result === "threecheck"
+                            ? "1/2-1/2"
+                            : game.black?.result === "agreed" ||
+                              game.black?.result === "repetition" ||
+                              game.black?.result === "stalemate" ||
+                              game.black?.result === "insufficient" ||
+                              game.black?.result === "50move" ||
+                              game.black?.result === "timevsinsufficient" ||
+                              game.black?.result === "threecheck"
+                                ? "1/2-1/2"
+                                : "*"
+            }))
+        });
     } catch (error) {
-        res.status(500).json({
-            error: "Something went wrong"
+        res.status(error.status || 500).json({
+            error: "Unable to fetch monthly games",
+            details: error.message
         });
     }
 });
 
+// Analyze a player's games for a particular month
 app.get("/api/analyze/:username/:year/:month", async (req, res) => {
     const { username, year, month } = req.params;
 
+    if (!validateMonth(year, month)) {
+        return res.status(400).json({
+            error: "Invalid year or month. Use a four-digit year and month from 01 to 12."
+        });
+    }
+
     try {
-        const response = await fetch(
-            `https://api.chess.com/pub/player/${username}/games/${year}/${month}/pgn`,
-            {
-                headers: {
-                    "User-Agent": "ChessGameAnalyzer/1.0 (learning project)"
-                }
-            }
+        const response = await chessComFetch(
+            `https://api.chess.com/pub/player/${encodeURIComponent(username)}/games/${year}/${month}`
         );
 
-        if (!response.ok) {
-            return res.status(response.status).json({
-                error: "Games not found"
-            });
-        }
-
-        const pgn = await response.text();
-
-        const games = pgn.split(/\n\n(?=\[Event )/);
-
-        const analyzedGames = [];
+        const data = await response.json();
+        const sourceGames = Array.isArray(data.games) ? data.games : [];
 
         let wins = 0;
         let losses = 0;
         let draws = 0;
-
-        let shortGames = 0;
-        let mediumGames = 0;
-        let longGames = 0;
-
-        let shortWins = 0;
-        let shortLosses = 0;
-        let shortDraws = 0;
-
-        let mediumWins = 0;
-        let mediumLosses = 0;
-        let mediumDraws = 0;
-
-        let longWins = 0;
-        let longLosses = 0;
-        let longDraws = 0;
 
         let whiteGames = 0;
         let blackGames = 0;
@@ -151,40 +213,48 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         let blackLosses = 0;
         let blackDraws = 0;
 
+        const lengthStats = {
+            Short: createOutcomeStats(),
+            Medium: createOutcomeStats(),
+            Long: createOutcomeStats()
+        };
+
         const opponents = {};
         const opponentStats = {};
         const firstMoveStats = {};
+        const analyzedGames = [];
 
-        for (const gamePgn of games) {
-            const chess = new Chess();
+        let skippedGames = 0;
+
+        for (const sourceGame of sourceGames) {
+            if (!sourceGame.pgn) {
+                skippedGames++;
+                continue;
+            }
 
             try {
-                const loaded = chess.loadPgn(gamePgn);
+                const chess = new Chess();
+                chess.loadPgn(sourceGame.pgn);
 
-                if (loaded === false) {
+                const headers = chess.header();
+                const white = headers.White || sourceGame.white?.username || "Unknown";
+                const black = headers.Black || sourceGame.black?.username || "Unknown";
+                const result = headers.Result || "*";
+
+                const playerIsWhite =
+                    white.toLowerCase() === username.toLowerCase();
+
+                const playerIsBlack =
+                    black.toLowerCase() === username.toLowerCase();
+
+                if (!playerIsWhite && !playerIsBlack) {
+                    skippedGames++;
                     continue;
                 }
 
-                const headers = chess.header();
-
-                let opponent;
-
-                if (headers.White.toLowerCase() === username.toLowerCase()) {
-                    opponent = headers.Black;
-                } else {
-                    opponent = headers.White;
-                }
-
-                if (!opponentStats[opponent]) {
-                    opponentStats[opponent] = {
-                        games: 0,
-                        wins: 0,
-                        losses: 0,
-                        draws: 0
-                    };
-                }
-
-                opponentStats[opponent].games++;
+                const playerColor = playerIsWhite ? "white" : "black";
+                const opponent = playerIsWhite ? black : white;
+                const outcome = getPlayerOutcome(result, playerColor);
 
                 if (!opponents[opponent]) {
                     opponents[opponent] = 0;
@@ -192,416 +262,250 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
 
                 opponents[opponent]++;
 
-                if (headers.White.toLowerCase() === username.toLowerCase()) {
-                    whiteGames++;
-                } else if (headers.Black.toLowerCase() === username.toLowerCase()) {
-                    blackGames++;
+                if (!opponentStats[opponent]) {
+                    opponentStats[opponent] = createOutcomeStats();
                 }
 
-                if (headers.Result === "1-0") {
-                    if (headers.White.toLowerCase() === username.toLowerCase()) {
-                        wins++;
-                        whiteWins++;
+                const opponentOutcome =
+                    outcome === "win" ? "loss" :
+                    outcome === "loss" ? "win" : outcome;
+
+                if (outcome !== "unknown") {
+                    recordOutcome(opponentStats[opponent], opponentOutcome);
+
+                    if (outcome === "win") wins++;
+                    if (outcome === "loss") losses++;
+                    if (outcome === "draw") draws++;
+
+                    if (playerColor === "white") {
+                        whiteGames++;
+                        if (outcome === "win") whiteWins++;
+                        if (outcome === "loss") whiteLosses++;
+                        if (outcome === "draw") whiteDraws++;
                     } else {
-                        losses++;
-                        blackLosses++;
+                        blackGames++;
+                        if (outcome === "win") blackWins++;
+                        if (outcome === "loss") blackLosses++;
+                        if (outcome === "draw") blackDraws++;
                     }
+                } else {
+                    if (playerColor === "white") whiteGames++;
+                    else blackGames++;
                 }
 
-                if (headers.Result === "0-1") {
-                    if (headers.Black.toLowerCase() === username.toLowerCase()) {
-                        wins++;
-                        blackWins++;
-                    } else {
-                        losses++;
-                        whiteLosses++;
-                    }
-                }
-
-                if (headers.Result === "1/2-1/2") {
-                    draws++;
-
-                    if (headers.White.toLowerCase() === username.toLowerCase()) {
-                        whiteDraws++;
-                    } else {
-                        blackDraws++;
-                    }
-                }
-
-                if (headers.Result === "1-0") {
-                    if (headers.White.toLowerCase() === username.toLowerCase()) {
-                        opponentStats[opponent].wins++;
-                    } else {
-                        opponentStats[opponent].losses++;
-                    }
-                }
-
-                if (headers.Result === "0-1") {
-                    if (headers.Black.toLowerCase() === username.toLowerCase()) {
-                        opponentStats[opponent].wins++;
-                    } else {
-                        opponentStats[opponent].losses++;
-                    }
-                }
-
-                if (headers.Result === "1/2-1/2") {
-                    opponentStats[opponent].draws++;
-                }
-
-                const moves = chess.history();
+                const verboseMoves = chess.history({ verbose: true });
+                const moves = verboseMoves.map(move => move.san);
                 const totalMoves = moves.length;
+                const gameLength = getGameLength(totalMoves);
 
-                const firstMove = moves[0];
-
-                if (!firstMoveStats[firstMove]) {
-                    firstMoveStats[firstMove] = {
-                        games: 0,
-                        wins: 0,
-                        losses: 0,
-                        draws: 0
-                    };
-                }
-
-                firstMoveStats[firstMove].games++;
-
-                if (headers.Result === "1-0") {
-                    if (headers.White.toLowerCase() === username.toLowerCase()) {
-                        firstMoveStats[firstMove].wins++;
-                    } else {
-                        firstMoveStats[firstMove].losses++;
-                    }
-                }
-
-                if (headers.Result === "0-1") {
-                    if (headers.Black.toLowerCase() === username.toLowerCase()) {
-                        firstMoveStats[firstMove].wins++;
-                    } else {
-                        firstMoveStats[firstMove].losses++;
-                    }
-                }
-
-                if (headers.Result === "1/2-1/2") {
-                    firstMoveStats[firstMove].draws++;
-                }
-
-                const openingMoves = moves.slice(0, 10);
-
-                if (totalMoves <= 20) {
-                    shortGames++;
-                } else if (totalMoves <= 40) {
-                    mediumGames++;
+                if (outcome !== "unknown") {
+                    recordOutcome(lengthStats[gameLength], outcome);
                 } else {
-                    longGames++;
+                    lengthStats[gameLength].games++;
                 }
 
-                let gameLength;
+                // Find this player's first move, not the opponent's first move.
+                const ownFirstMove = verboseMoves.find(
+                    move => move.color === playerColor[0]
+                );
 
-                if (totalMoves <= 20) {
-                    gameLength = "Short";
-                } else if (totalMoves <= 40) {
-                    gameLength = "Medium";
-                } else {
-                    gameLength = "Long";
-                }
+                if (ownFirstMove) {
+                    const firstMove = ownFirstMove.san;
 
-                if (gameLength === "Short") {
-                    if (headers.Result === "1-0") {
-                        if (headers.White.toLowerCase() === username.toLowerCase()) {
-                            shortWins++;
-                        } else {
-                            shortLosses++;
-                        }
+                    if (!firstMoveStats[firstMove]) {
+                        firstMoveStats[firstMove] = createOutcomeStats();
                     }
 
-                    if (headers.Result === "0-1") {
-                        if (headers.Black.toLowerCase() === username.toLowerCase()) {
-                            shortWins++;
-                        } else {
-                            shortLosses++;
-                        }
-                    }
-
-                    if (headers.Result === "1/2-1/2") {
-                        shortDraws++;
-                    }
-                }
-
-                if (gameLength === "Medium") {
-                    if (headers.Result === "1-0") {
-                        if (headers.White.toLowerCase() === username.toLowerCase()) {
-                            mediumWins++;
-                        } else {
-                            mediumLosses++;
-                        }
-                    }
-
-                    if (headers.Result === "0-1") {
-                        if (headers.Black.toLowerCase() === username.toLowerCase()) {
-                            mediumWins++;
-                        } else {
-                            mediumLosses++;
-                        }
-                    }
-
-                    if (headers.Result === "1/2-1/2") {
-                        mediumDraws++;
-                    }
-                }
-
-                if (gameLength === "Long") {
-                    if (headers.Result === "1-0") {
-                        if (headers.White.toLowerCase() === username.toLowerCase()) {
-                            longWins++;
-                        } else {
-                            longLosses++;
-                        }
-                    }
-
-                    if (headers.Result === "0-1") {
-                        if (headers.Black.toLowerCase() === username.toLowerCase()) {
-                            longWins++;
-                        } else {
-                            longLosses++;
-                        }
-                    }
-
-                    if (headers.Result === "1/2-1/2") {
-                        longDraws++;
+                    if (outcome !== "unknown") {
+                        recordOutcome(firstMoveStats[firstMove], outcome);
+                    } else {
+                        firstMoveStats[firstMove].games++;
                     }
                 }
 
                 analyzedGames.push({
-                    white: headers.White,
-                    black: headers.Black,
-                    result: headers.Result,
-                    moves: moves,
-                    totalMoves: totalMoves,
-                    gameLength: gameLength,
-                    openingMoves: openingMoves,
-                    finalPosition: chess.fen()
+                    white,
+                    black,
+                    result,
+                    moves,
+                    totalMoves,
+                    gameLength,
+                    openingMoves: moves.slice(0, 10),
+                    playerColor,
+                    playerOutcome: outcome,
+                    playerFirstMove: ownFirstMove?.san || null,
+                    finalPosition: chess.fen(),
+                    url: sourceGame.url
                 });
-
             } catch (error) {
-                console.log("Skipping game:", error.message);
+                skippedGames++;
+                console.error("Skipping invalid game:", error.message);
             }
         }
 
-        const opponentList = Object.entries(opponents).map(([opponent, games]) => {
-            return {
-                opponent: opponent,
-                games: games
-            };
-        });
+        const totalGames = analyzedGames.length;
 
-        opponentList.sort((a, b) => b.games - a.games);
+        const opponentList = Object.entries(opponents)
+            .map(([opponent, games]) => ({ opponent, games }))
+            .sort((a, b) => b.games - a.games);
 
         const topOpponents = opponentList.slice(0, 10);
 
-        const totalGames = analyzedGames.length;
-
-        const winPercentage = totalGames > 0
-            ? ((wins / totalGames) * 100).toFixed(2)
-            : "0.00";
-
-        const drawPercentage = totalGames > 0
-            ? ((draws / totalGames) * 100).toFixed(2)
-            : "0.00";
-
-        const lossPercentage = totalGames > 0
-            ? ((losses / totalGames) * 100).toFixed(2)
-            : "0.00";
-
-        const whiteWinPercentage = whiteGames > 0
-            ? ((whiteWins / whiteGames) * 100).toFixed(2)
-            : "0.00";
-
-        const blackWinPercentage = blackGames > 0
-            ? ((blackWins / blackGames) * 100).toFixed(2)
-            : "0.00";
-        const performanceSummary = {
-            totalGames: totalGames,
-            wins: wins,
-            losses: losses,
-            draws: draws,
-            winPercentage: winPercentage,
-            drawPercentage: drawPercentage,
-            lossPercentage: lossPercentage
-            };
-        const opponentPerformance = Object.entries(opponentStats).map(
-            ([opponent, stats]) => {
-                const winPercentage = stats.games > 0
-                    ? ((stats.wins / stats.games) * 100).toFixed(2)
-                    : "0.00";
-
-                return {
-                    opponent: opponent,
-                    games: stats.games,
-                    wins: stats.wins,
-                    losses: stats.losses,
-                    draws: stats.draws,
-                    winPercentage: winPercentage
-                };
-            }
-        );
-
-        opponentPerformance.sort((a, b) => b.winPercentage - a.winPercentage);
+        const opponentPerformance = Object.entries(opponentStats)
+            .map(([opponent, stats]) => ({
+                opponent,
+                games: stats.games,
+                wins: stats.wins,
+                losses: stats.losses,
+                draws: stats.draws,
+                winPercentage: percentage(stats.wins, stats.games)
+            }))
+            .sort((a, b) =>
+                Number(b.winPercentage) - Number(a.winPercentage)
+            );
 
         const topOpponentPerformance = opponentPerformance.slice(0, 10);
-        const firstMovePerformance = Object.entries(firstMoveStats).map(
-    ([firstMove, stats]) => {
-        const winPercentage = stats.games > 0
-            ? ((stats.wins / stats.games) * 100).toFixed(2)
-            : "0.00";
 
-        const drawPercentage = stats.games > 0
-            ? ((stats.draws / stats.games) * 100).toFixed(2)
-            : "0.00";
+        const firstMovePerformance = Object.entries(firstMoveStats)
+            .map(([firstMove, stats]) => ({
+                firstMove,
+                games: stats.games,
+                wins: stats.wins,
+                losses: stats.losses,
+                draws: stats.draws,
+                winPercentage: percentage(stats.wins, stats.games),
+                drawPercentage: percentage(stats.draws, stats.games),
+                lossPercentage: percentage(stats.losses, stats.games),
+                performanceCategory: getPerformanceCategory(stats)
+            }))
+            .sort((a, b) =>
+                Number(b.winPercentage) - Number(a.winPercentage)
+            );
 
-        const lossPercentage = stats.games > 0
-            ? ((stats.losses / stats.games) * 100).toFixed(2)
-            : "0.00";
-            let performanceCategory;
-
-if (stats.games < 5) {
-    performanceCategory = "Insufficient Data";
-} else if (Number(winPercentage) >= 60) {
-    performanceCategory = "Strong";
-} else if (Number(winPercentage) >= 40) {
-    performanceCategory = "Average";
-} else {
-    performanceCategory = "Needs Improvement";
-}
-
-        return {
-            firstMove: firstMove,
-            games: stats.games,
-            wins: stats.wins,
-            losses: stats.losses,
-            draws: stats.draws,
-            winPercentage: winPercentage,
-            drawPercentage: drawPercentage,
-            lossPercentage: lossPercentage,
-            performanceCategory: performanceCategory,
+        const firstMoveSummary = {
+            strong: 0,
+            average: 0,
+            needsImprovement: 0,
+            insufficientData: 0
         };
-    }
-);
 
-const firstMoveSummary = {
-    strong: 0,
-    average: 0,
-    needsImprovement: 0,
-    insufficientData: 0
-};
+        for (const move of firstMovePerformance) {
+            if (move.performanceCategory === "Strong") {
+                firstMoveSummary.strong++;
+            } else if (move.performanceCategory === "Average") {
+                firstMoveSummary.average++;
+            } else if (move.performanceCategory === "Needs Improvement") {
+                firstMoveSummary.needsImprovement++;
+            } else {
+                firstMoveSummary.insufficientData++;
+            }
+        }
 
-for (const move of firstMovePerformance) {
-    if (move.performanceCategory === "Strong") {
-        firstMoveSummary.strong++;
-    } else if (move.performanceCategory === "Average") {
-        firstMoveSummary.average++;
-    } else if (move.performanceCategory === "Needs Improvement") {
-        firstMoveSummary.needsImprovement++;
-    } else {
-        firstMoveSummary.insufficientData++;
-    }
-}
-const firstMoveComparison = firstMovePerformance.map(move => ({
-    firstMove: move.firstMove,
-    games: move.games,
-    wins: move.wins,
-    draws: move.draws,
-    losses: move.losses,
-    winPercentage: move.winPercentage,
-    drawPercentage: move.drawPercentage,
-    lossPercentage: move.lossPercentage
-}));
-        
-firstMovePerformance.sort(
-    (a, b) => Number(b.winPercentage) - Number(a.winPercentage)
-);
-const topFirstMoves = firstMovePerformance.slice(0, 5);
-const eligibleFirstMoves = firstMovePerformance.filter(
-    move => move.games >= 5
-);
-const bestFirstMove = eligibleFirstMoves.length > 0
-    ? eligibleFirstMoves[0]
-    : null;
+        const eligibleFirstMoves = firstMovePerformance.filter(
+            move => move.games >= 5
+        );
 
-const worstFirstMove = eligibleFirstMoves.length > 0
-    ? eligibleFirstMoves[eligibleFirstMoves.length - 1]
-    : null;
-        
+        const firstMoveComparison = firstMovePerformance.map(move => ({
+            firstMove: move.firstMove,
+            games: move.games,
+            wins: move.wins,
+            draws: move.draws,
+            losses: move.losses,
+            winPercentage: move.winPercentage,
+            drawPercentage: move.drawPercentage,
+            lossPercentage: move.lossPercentage
+        }));
+
+        const topFirstMoves = firstMovePerformance.slice(0, 5);
+
+        const bestFirstMove = eligibleFirstMoves.length
+            ? eligibleFirstMoves[0]
+            : null;
+
+        const worstFirstMove = eligibleFirstMoves.length
+            ? eligibleFirstMoves[eligibleFirstMoves.length - 1]
+            : null;
+
+        const performanceSummary = {
+            totalGames,
+            wins,
+            losses,
+            draws,
+            winPercentage: percentage(wins, totalGames),
+            drawPercentage: percentage(draws, totalGames),
+            lossPercentage: percentage(losses, totalGames)
+        };
+
         res.json({
-            username: username,
-            year: year,
-            month: month,
+            username,
+            year,
+            month,
+            totalGames,
+            skippedGames,
 
-            totalGames: totalGames,
+            wins,
+            losses,
+            draws,
+            winPercentage: percentage(wins, totalGames),
+            drawPercentage: percentage(draws, totalGames),
+            lossPercentage: percentage(losses, totalGames),
 
-            wins: wins,
-            losses: losses,
-            draws: draws,
-            winPercentage: winPercentage,
+            whiteGames,
+            blackGames,
+            whiteWins,
+            whiteLosses,
+            whiteDraws,
+            whiteWinPercentage: percentage(whiteWins, whiteGames),
+            blackWins,
+            blackLosses,
+            blackDraws,
+            blackWinPercentage: percentage(blackWins, blackGames),
 
-            whiteGames: whiteGames,
-            blackGames: blackGames,
+            opponents,
+            topOpponents,
+            opponentStats,
+            opponentPerformance,
+            topOpponentPerformance,
 
-            whiteWins: whiteWins,
-            whiteLosses: whiteLosses,
-            whiteDraws: whiteDraws,
-            whiteWinPercentage: whiteWinPercentage,
+            firstMoveStats,
+            firstMovePerformance,
+            topFirstMoves,
+            eligibleFirstMoves,
+            bestFirstMove,
+            worstFirstMove,
+            firstMoveComparison,
+            firstMoveSummary,
+            performanceSummary,
 
-            blackWins: blackWins,
-            blackLosses: blackLosses,
-            blackDraws: blackDraws,
-            blackWinPercentage: blackWinPercentage,
+            shortGames: lengthStats.Short.games,
+            mediumGames: lengthStats.Medium.games,
+            longGames: lengthStats.Long.games,
 
-            opponents: opponents,
-            topOpponents: topOpponents,
+            shortWins: lengthStats.Short.wins,
+            shortLosses: lengthStats.Short.losses,
+            shortDraws: lengthStats.Short.draws,
 
-            opponentStats: opponentStats,
-            opponentPerformance: opponentPerformance,
-            topOpponentPerformance: topOpponentPerformance,
+            mediumWins: lengthStats.Medium.wins,
+            mediumLosses: lengthStats.Medium.losses,
+            mediumDraws: lengthStats.Medium.draws,
 
-            firstMoveStats: firstMoveStats,
-            firstMovePerformance: firstMovePerformance,
-            topFirstMoves: topFirstMoves,
-
-            eligibleFirstMoves: eligibleFirstMoves,
-            bestFirstMove: bestFirstMove,
-            worstFirstMove: worstFirstMove,
-            
-            firstMoveComparison: firstMoveComparison,
-            firstMoveSummary: firstMoveSummary,
-            performanceSummary: performanceSummary,
-
-            shortGames: shortGames,
-            mediumGames: mediumGames,
-            longGames: longGames,
-
-            shortWins: shortWins,
-            shortLosses: shortLosses,
-            shortDraws: shortDraws,
-
-            mediumWins: mediumWins,
-            mediumLosses: mediumLosses,
-            mediumDraws: mediumDraws,
-
-            longWins: longWins,
-            longLosses: longLosses,
-            longDraws: longDraws,
+            longWins: lengthStats.Long.wins,
+            longLosses: lengthStats.Long.losses,
+            longDraws: lengthStats.Long.draws,
 
             games: analyzedGames
         });
-
     } catch (error) {
-        console.error(error);
+        console.error("Analysis error:", error.message);
 
-        res.status(500).json({
-            error: error.message
+        res.status(error.status || 500).json({
+            error: "Unable to analyze games",
+            details: error.message
         });
     }
 });
 
+// Test chess.js
 app.get("/test-chess", (req, res) => {
     const chess = new Chess();
 
@@ -615,26 +519,6 @@ app.get("/test-chess", (req, res) => {
     });
 });
 
-app.get("/test-pgn", async (req, res) => {
-    const response = await fetch(
-        "https://api.chess.com/pub/player/Hikaru/games/2026/09/pgn",
-        {
-            headers: {
-                "User-Agent": "ChessGameAnalyzer/1.0 (learning project)"
-            }
-        }
-    );
-
-    const pgn = await response.text();
-
-    const games = pgn.split(/\n\n(?=\[Event )/);
-
-    res.json({
-        totalGames: games.length,
-        firstGame: games[0]
-    });
-});
-
-app.listen(3001, () => {
-    console.log("Server running on http://localhost:3001");
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
 });

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-
+const API_BASE_URL = (
+    import.meta.env.VITE_API_BASE_URL || ""
+).replace(/\/$/, "");
 function App() {
   const [username, setUsername] = useState("Hikaru");
   const [year, setYear] = useState("2014");
@@ -45,20 +47,21 @@ function App() {
     setError("");
 
     try {
-      const url = `/api/analyze/${encodeURIComponent(
+    const url = `${API_BASE_URL}/api/analyze/${encodeURIComponent(
         username.trim()
-      )}/${year}/${String(month).padStart(2, "0")}`;
+    )}/${year}/${String(month).padStart(2, "0")}`;
 
-      const response = await fetch(url);
-      const result = await response.json();
+    const response = await fetch(url);
+    const result = await response.json();
 
-      if (!response.ok) {
+    if (!response.ok) {
         throw new Error(
-          result.message ||
+            result.message ||
             result.error ||
-            "Unable to fetch chess game data."
+            "Failed to fetch game data"
         );
-      }
+    }
+    
 
       setData(result);
     } catch (err) {
