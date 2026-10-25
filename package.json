@@ -21,6 +21,7 @@
   "homepage": "https://github.com/bailmaresameeksha-beep/chess-game-analyzer#readme",
   "dependencies": {
     "chess.js": "^1.4.0",
+    "cors": "^2.8.6",
     "express": "^5.2.1"
   }
 }

@@ -1,9 +1,12 @@
-
 const express = require("express");
+const cors = require("cors");
 const { Chess } = require("chess.js");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+app.use(cors());
+app.use(express.json());
 
 const HEADERS = {
     "User-Agent": "ChessGameAnalyzer/1.0 (learning project)"
@@ -78,7 +81,6 @@ app.get("/", (req, res) => {
     res.send("Welcome to my Chess Game Analyzer!");
 });
 
-// Get player profile
 app.get("/api/player/:username", async (req, res) => {
     const { username } = req.params;
 
@@ -98,7 +100,6 @@ app.get("/api/player/:username", async (req, res) => {
     }
 });
 
-// Get all monthly archive URLs for a player
 app.get("/api/player/:username/games", async (req, res) => {
     const { username } = req.params;
 
@@ -116,7 +117,6 @@ app.get("/api/player/:username/games", async (req, res) => {
     }
 });
 
-// Get games for a particular month
 app.get("/api/player/:username/games/:year/:month", async (req, res) => {
     const { username, year, month } = req.params;
 
@@ -180,7 +180,6 @@ app.get("/api/player/:username/games/:year/:month", async (req, res) => {
     }
 });
 
-// Analyze a player's games for a particular month
 app.get("/api/analyze/:username/:year/:month", async (req, res) => {
     const { username, year, month } = req.params;
 
@@ -201,14 +200,11 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         let wins = 0;
         let losses = 0;
         let draws = 0;
-
         let whiteGames = 0;
         let blackGames = 0;
-
         let whiteWins = 0;
         let whiteLosses = 0;
         let whiteDraws = 0;
-
         let blackWins = 0;
         let blackLosses = 0;
         let blackDraws = 0;
@@ -223,7 +219,6 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         const opponentStats = {};
         const firstMoveStats = {};
         const analyzedGames = [];
-
         let skippedGames = 0;
 
         for (const sourceGame of sourceGames) {
@@ -241,11 +236,8 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
                 const black = headers.Black || sourceGame.black?.username || "Unknown";
                 const result = headers.Result || "*";
 
-                const playerIsWhite =
-                    white.toLowerCase() === username.toLowerCase();
-
-                const playerIsBlack =
-                    black.toLowerCase() === username.toLowerCase();
+                const playerIsWhite = white.toLowerCase() === username.toLowerCase();
+                const playerIsBlack = black.toLowerCase() === username.toLowerCase();
 
                 if (!playerIsWhite && !playerIsBlack) {
                     skippedGames++;
@@ -256,11 +248,7 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
                 const opponent = playerIsWhite ? black : white;
                 const outcome = getPlayerOutcome(result, playerColor);
 
-                if (!opponents[opponent]) {
-                    opponents[opponent] = 0;
-                }
-
-                opponents[opponent]++;
+                opponents[opponent] = (opponents[opponent] || 0) + 1;
 
                 if (!opponentStats[opponent]) {
                     opponentStats[opponent] = createOutcomeStats();
@@ -304,7 +292,6 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
                     lengthStats[gameLength].games++;
                 }
 
-                // Find this player's first move, not the opponent's first move.
                 const ownFirstMove = verboseMoves.find(
                     move => move.color === playerColor[0]
                 );
@@ -360,9 +347,7 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
                 draws: stats.draws,
                 winPercentage: percentage(stats.wins, stats.games)
             }))
-            .sort((a, b) =>
-                Number(b.winPercentage) - Number(a.winPercentage)
-            );
+            .sort((a, b) => Number(b.winPercentage) - Number(a.winPercentage));
 
         const topOpponentPerformance = opponentPerformance.slice(0, 10);
 
@@ -378,9 +363,7 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
                 lossPercentage: percentage(stats.losses, stats.games),
                 performanceCategory: getPerformanceCategory(stats)
             }))
-            .sort((a, b) =>
-                Number(b.winPercentage) - Number(a.winPercentage)
-            );
+            .sort((a, b) => Number(b.winPercentage) - Number(a.winPercentage));
 
         const firstMoveSummary = {
             strong: 0,
@@ -390,20 +373,13 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         };
 
         for (const move of firstMovePerformance) {
-            if (move.performanceCategory === "Strong") {
-                firstMoveSummary.strong++;
-            } else if (move.performanceCategory === "Average") {
-                firstMoveSummary.average++;
-            } else if (move.performanceCategory === "Needs Improvement") {
-                firstMoveSummary.needsImprovement++;
-            } else {
-                firstMoveSummary.insufficientData++;
-            }
+            if (move.performanceCategory === "Strong") firstMoveSummary.strong++;
+            else if (move.performanceCategory === "Average") firstMoveSummary.average++;
+            else if (move.performanceCategory === "Needs Improvement") firstMoveSummary.needsImprovement++;
+            else firstMoveSummary.insufficientData++;
         }
 
-        const eligibleFirstMoves = firstMovePerformance.filter(
-            move => move.games >= 5
-        );
+        const eligibleFirstMoves = firstMovePerformance.filter(move => move.games >= 5);
 
         const firstMoveComparison = firstMovePerformance.map(move => ({
             firstMove: move.firstMove,
@@ -417,14 +393,8 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
         }));
 
         const topFirstMoves = firstMovePerformance.slice(0, 5);
-
-        const bestFirstMove = eligibleFirstMoves.length
-            ? eligibleFirstMoves[0]
-            : null;
-
-        const worstFirstMove = eligibleFirstMoves.length
-            ? eligibleFirstMoves[eligibleFirstMoves.length - 1]
-            : null;
+        const bestFirstMove = eligibleFirstMoves.length ? eligibleFirstMoves[0] : null;
+        const worstFirstMove = eligibleFirstMoves.length ? eligibleFirstMoves[eligibleFirstMoves.length - 1] : null;
 
         const performanceSummary = {
             totalGames,
@@ -442,14 +412,12 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
             month,
             totalGames,
             skippedGames,
-
             wins,
             losses,
             draws,
             winPercentage: percentage(wins, totalGames),
             drawPercentage: percentage(draws, totalGames),
             lossPercentage: percentage(losses, totalGames),
-
             whiteGames,
             blackGames,
             whiteWins,
@@ -460,13 +428,11 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
             blackLosses,
             blackDraws,
             blackWinPercentage: percentage(blackWins, blackGames),
-
             opponents,
             topOpponents,
             opponentStats,
             opponentPerformance,
             topOpponentPerformance,
-
             firstMoveStats,
             firstMovePerformance,
             topFirstMoves,
@@ -476,23 +442,18 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
             firstMoveComparison,
             firstMoveSummary,
             performanceSummary,
-
             shortGames: lengthStats.Short.games,
             mediumGames: lengthStats.Medium.games,
             longGames: lengthStats.Long.games,
-
             shortWins: lengthStats.Short.wins,
             shortLosses: lengthStats.Short.losses,
             shortDraws: lengthStats.Short.draws,
-
             mediumWins: lengthStats.Medium.wins,
             mediumLosses: lengthStats.Medium.losses,
             mediumDraws: lengthStats.Medium.draws,
-
             longWins: lengthStats.Long.wins,
             longLosses: lengthStats.Long.losses,
             longDraws: lengthStats.Long.draws,
-
             games: analyzedGames
         });
     } catch (error) {
@@ -505,7 +466,6 @@ app.get("/api/analyze/:username/:year/:month", async (req, res) => {
     }
 });
 
-// Test chess.js
 app.get("/test-chess", (req, res) => {
     const chess = new Chess();
 
