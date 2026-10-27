@@ -12,6 +12,15 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [compareYear1, setCompareYear1] = useState("2014");
+const [compareMonth1, setCompareMonth1] = useState("02");
+const [compareYear2, setCompareYear2] = useState("2014");
+const [compareMonth2, setCompareMonth2] = useState("03");
+
+const [compareData, setCompareData] = useState(null);
+const [compareLoading, setCompareLoading] = useState(false);
+const [compareError, setCompareError] = useState("");
+
   const summary = data?.performanceSummary || data || {};
 
   const number = (value) => Number(value || 0);
@@ -72,6 +81,56 @@ function App() {
       setLoading(false);
     }
   };
+  const compareMonths = async () => {
+    if (!username.trim()) {
+        setCompareError("Enter a Chess.com username first.");
+        return;
+    }
+
+    const validYear = (value) =>
+        /^\d{4}$/.test(value) &&
+        Number(value) >= 2007 &&
+        Number(value) <= new Date().getFullYear();
+
+    const validMonth = (value) =>
+        /^\d{1,2}$/.test(value) &&
+        Number(value) >= 1 &&
+        Number(value) <= 12;
+
+    if (
+        !validYear(compareYear1) ||
+        !validYear(compareYear2) ||
+        !validMonth(compareMonth1) ||
+        !validMonth(compareMonth2)
+    ) {
+        setCompareError("Enter valid years and months.");
+        return;
+    }
+
+    setCompareLoading(true);
+    setCompareError("");
+    setCompareData(null);
+
+    try {
+        const url =
+            `${API_BASE_URL}/api/compare/${encodeURIComponent(username.trim())}` +
+            `/${compareYear1}/${compareMonth1.padStart(2, "0")}` +
+            `/${compareYear2}/${compareMonth2.padStart(2, "0")}`;
+
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || "Comparison failed.");
+        }
+
+        setCompareData(result);
+    } catch (err) {
+        setCompareError(err.message || "Unable to compare months.");
+    } finally {
+        setCompareLoading(false);
+    }
+};
 
   useEffect(() => {
     loadData();
@@ -197,6 +256,134 @@ function App() {
           </button>
         </form>
       </section>
+      <section className="panel comparison-panel">
+    <p className="eyebrow">MONTHLY ANALYTICS</p>
+    <h2>Compare Performance</h2>
+    <p className="subtitle">
+        Compare your results across two different months.
+    </p>
+
+    <div className="comparison-inputs">
+        <div className="comparison-period">
+            <h3>First Month</h3>
+
+            <label>
+                Year
+                <input
+                    type="number"
+                    min="2007"
+                    max={new Date().getFullYear()}
+                    value={compareYear1}
+                    onChange={(event) =>
+                        setCompareYear1(event.target.value)
+                    }
+                    disabled={compareLoading}
+                />
+            </label>
+
+            <label>
+                Month (1–12)
+                <input
+                    type="number"
+                    min="1"
+                    max="12"
+                    value={Number(compareMonth1)}
+                    onChange={(event) =>
+                        setCompareMonth1(event.target.value)
+                    }
+                    disabled={compareLoading}
+                />
+            </label>
+        </div>
+
+        <div className="comparison-period">
+            <h3>Second Month</h3>
+
+            <label>
+                Year
+                <input
+                    type="number"
+                    min="2007"
+                    max={new Date().getFullYear()}
+                    value={compareYear2}
+                    onChange={(event) =>
+                        setCompareYear2(event.target.value)
+                    }
+                    disabled={compareLoading}
+                />
+            </label>
+
+            <label>
+                Month (1–12)
+                <input
+                    type="number"
+                    min="1"
+                    max="12"
+                    value={Number(compareMonth2)}
+                    onChange={(event) =>
+                        setCompareMonth2(event.target.value)
+                    }
+                    disabled={compareLoading}
+                />
+            </label>
+        </div>
+    </div>
+
+    <button
+        className="analyze-button"
+        type="button"
+        onClick={compareMonths}
+        disabled={compareLoading}
+    >
+        {compareLoading ? "Comparing..." : "Compare Months"}
+    </button>
+
+    {compareError && (
+        <div className="status-message error-message" role="alert">
+            {compareError}
+        </div>
+    )}
+
+    {compareData && (
+        <div className="comparison-results">
+            {[compareData.firstMonth, compareData.secondMonth].map(
+                (item, index) => (
+                    <div className="comparison-card" key={index}>
+                        <h3>
+                            {item.year}-{String(item.month).padStart(2, "0")}
+                        </h3>
+
+                        <p>Total Games: <strong>{item.totalGames}</strong></p>
+                        <p>Wins: <strong>{item.wins}</strong></p>
+                        <p>Draws: <strong>{item.draws}</strong></p>
+                        <p>Losses: <strong>{item.losses}</strong></p>
+                        <p>
+                            Win Rate:{" "}
+                            <strong>{item.winPercentage}%</strong>
+                        </p>
+                    </div>
+                )
+            )}
+
+            <div className="comparison-difference">
+                <h3>Win Rate Difference</h3>
+                <p>
+                    {compareData.winRateDifference > 0
+                        ? "+"
+                        : ""}
+                    {compareData.winRateDifference} percentage points
+                </p>
+                <span>
+                    {compareData.winRateDifference > 0
+                        ? "Win rate increased in the second month."
+                        : compareData.winRateDifference < 0
+                            ? "Win rate decreased in the second month."
+                            : "Win rate stayed the same."}
+                </span>
+            </div>
+        </div>
+    )}
+</section>
 
       {loading && (
         <div className="status-message loading-message" role="status">

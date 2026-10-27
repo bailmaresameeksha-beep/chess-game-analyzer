@@ -478,7 +478,129 @@ app.get("/test-chess", (req, res) => {
         moves: chess.history()
     });
 });
+app.get(
+    "/api/compare/:username/:year1/:month1/:year2/:month2",
+    async (req, res) => {
+        const {
+            username,
+            year1,
+            month1,
+            year2,
+            month2
+        } = req.params;
 
+        if (
+            !username.trim() ||
+            !validateMonth(year1, month1) ||
+            !validateMonth(year2, month2)
+        ) {
+            return res.status(400).json({
+                error: "Invalid username, year, or month."
+            });
+        }
+
+        async function getMonthlySummary(year, month) {
+            const response = await chessComFetch(
+                `https://api.chess.com/pub/player/${encodeURIComponent(username)}/games/${year}/${month}`
+            );
+
+            const data = await response.json();
+            const sourceGames = Array.isArray(data.games)
+                ? data.games
+                : [];
+
+            let totalGames = 0;
+            let wins = 0;
+            let losses = 0;
+            let draws = 0;
+            let skippedGames = 0;
+
+            for (const game of sourceGames) {
+                if (!game.pgn) {
+                    skippedGames++;
+                    continue;
+                }
+
+                try {
+                    const chess = new Chess();
+                    chess.loadPgn(game.pgn);
+
+                    const headers = chess.header();
+                    const white = headers.White || game.white?.username || "";
+                    const black = headers.Black || game.black?.username || "";
+                    const result = headers.Result || "*";
+
+                    const isWhite =
+                        white.toLowerCase() === username.toLowerCase();
+                    const isBlack =
+                        black.toLowerCase() === username.toLowerCase();
+
+                    if (!isWhite && !isBlack) {
+                        skippedGames++;
+                        continue;
+                    }
+
+                    const outcome = getPlayerOutcome(
+                        result,
+                        isWhite ? "white" : "black"
+                    );
+
+                    if (outcome === "unknown") {
+                        skippedGames++;
+                        continue;
+                    }
+
+                    totalGames++;
+
+                    if (outcome === "win") wins++;
+                    else if (outcome === "loss") losses++;
+                    else if (outcome === "draw") draws++;
+                } catch {
+                    skippedGames++;
+                }
+            }
+
+            return {
+                year,
+                month,
+                totalGames,
+                wins,
+                losses,
+                draws,
+                skippedGames,
+                winPercentage: percentage(wins, totalGames),
+                drawPercentage: percentage(draws, totalGames),
+                lossPercentage: percentage(losses, totalGames)
+            };
+        }
+
+        try {
+            const [firstMonth, secondMonth] = await Promise.all([
+                getMonthlySummary(year1, month1),
+                getMonthlySummary(year2, month2)
+            ]);
+
+            const winRateDifference = Number(
+                (
+                    Number(secondMonth.winPercentage) -
+                    Number(firstMonth.winPercentage)
+                ).toFixed(2)
+            );
+
+            res.json({
+                username,
+                firstMonth,
+                secondMonth,
+                winRateDifference
+            });
+        } catch (error) {
+            res.status(error.status || 500).json({
+                error: "Unable to compare monthly performance.",
+                details: error.message
+            });
+        }
+    }
+);
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
 });
