@@ -545,6 +545,148 @@ app.get("/", (req, res) => {
     res.send("Chess Game Analyzer API is running.");
 });
 
+
+// ==========================================
+// OPPONENT DETAILED INSIGHTS
+// ==========================================
+
+app.get("/api/opponents/:username/:year/:month", async (req, res) => {
+  try {
+    const { username, year, month } = req.params;
+
+    if (
+      !/^\d{4}$/.test(year) ||
+      Number(year) < 2007 ||
+      Number(year) > new Date().getFullYear() ||
+      !/^\d{1,2}$/.test(month) ||
+      Number(month) < 1 ||
+      Number(month) > 12
+    ) {
+      return res.status(400).json({ error: "Invalid year or month." });
+    }
+
+    const formattedMonth = String(month).padStart(2, "0");
+
+    const url =
+      `https://api.chess.com/pub/player/${encodeURIComponent(username)}` +
+      `/games/${year}/${formattedMonth}`;
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "ChessGameAnalyzer/1.0"
+      }
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: "Unable to fetch Chess.com game archive."
+      });
+    }
+
+    const archive = await response.json();
+    const games = archive.games || [];
+
+    const opponentMap = new Map();
+
+    const drawResults = [
+      "agreed",
+      "repetition",
+      "stalemate",
+      "insufficient",
+      "50move",
+      "timevsinsufficient"
+    ];
+
+    games.forEach((game) => {
+      const whiteName = game.white?.username || "";
+      const blackName = game.black?.username || "";
+
+      const isWhite =
+        whiteName.toLowerCase() === username.toLowerCase();
+
+      const isBlack =
+        blackName.toLowerCase() === username.toLowerCase();
+
+      if (!isWhite && !isBlack) return;
+
+      const opponent = isWhite ? blackName : whiteName;
+      if (!opponent) return;
+
+      const playerResult = isWhite
+        ? game.white?.result
+        : game.black?.result;
+
+      if (!opponentMap.has(opponent)) {
+        opponentMap.set(opponent, {
+          username: opponent,
+          games: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0
+        });
+      }
+
+      const stats = opponentMap.get(opponent);
+      stats.games++;
+
+      if (playerResult === "win") {
+        stats.wins++;
+      } else if (drawResults.includes(playerResult)) {
+        stats.draws++;
+      } else {
+        stats.losses++;
+      }
+    });
+
+    const opponents = Array.from(opponentMap.values()).map((item) => ({
+      ...item,
+      winPercentage:
+        item.games > 0
+          ? Number(((item.wins / item.games) * 100).toFixed(2))
+          : 0
+    }));
+
+    const mostPlayed = [...opponents]
+      .sort((a, b) => b.games - a.games)
+      .slice(0, 10);
+
+    const bestAgainst = [...opponents]
+      .filter((item) => item.games >= 2)
+      .sort((a, b) =>
+        b.winPercentage - a.winPercentage ||
+        b.games - a.games
+      )
+      .slice(0, 5);
+
+    const toughestOpponents = [...opponents]
+      .filter((item) => item.games >= 2)
+      .sort((a, b) =>
+        a.winPercentage - b.winPercentage ||
+        b.games - a.games
+      )
+      .slice(0, 5);
+
+    res.json({
+      username,
+      year: Number(year),
+      month: Number(formattedMonth),
+      totalOpponents: opponents.length,
+      mostPlayed,
+      bestAgainst,
+      toughestOpponents,
+      opponents
+    });
+
+  } catch (error) {
+    console.error("Opponent insights error:", error);
+
+    res.status(500).json({
+      error: "Unable to calculate opponent insights."
+    });
+  }
+});
+
+
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

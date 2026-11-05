@@ -1096,3 +1096,346 @@ td:first-child {
     min-width: 560px;
   }
 }
+/* OPENING PERFORMANCE ANALYSIS */
+
+.opening-performance-panel {
+  margin-top: 24px;
+}
+
+.opening-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+
+/* OPENING PERFORMANCE ANALYSIS */
+
+.opening-performance-panel {
+  margin-top: 24px;
+}
+
+.opening-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.opening-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 0;
+  color: #f1f5f9;
+}
+
+.opening-card h3,
+.opening-table-section h3 {
+  color: #f8fafc;
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.opening-card .chart-description {
+  color: #cbd5e1;
+}
+
+.opening-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 22px;
+}
+
+.opening-item {
+  min-width: 0;
+}
+
+.opening-item-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #f1f5f9;
+}
+
+.opening-item-heading span {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.opening-item-heading strong {
+  color: #93c5fd;
+  white-space: nowrap;
+}
+
+.opening-progress {
+  width: 100%;
+  height: 9px;
+  background: #475569;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.opening-progress-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 20px;
+  transition: width 0.3s ease;
+}
+
+.opening-win-fill {
+  background: #22c55e;
+}
+
+.opening-games-info {
+  font-size: 12px;
+  color: #cbd5e1;
+  margin: 0 0 8px;
+}
+
+.opening-table-section {
+  margin-top: 30px;
+}
+
+.opening-table-section h3 {
+  margin-bottom: 16px;
+}
+
+.opening-table-section table {
+  color: #f1f5f9;
+}
+
+.opening-table-section th {
+  color: #93c5fd;
+}
+
+.opening-table-section td {
+  color: #e2e8f0;
+}
+
+@media (max-width: 700px) {
+  .opening-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opening-card {
+    padding: 15px;
+  }
+
+  .opening-item-heading {
+    font-size: 13px;
+  }
+}
+
+.opening-games-info {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 8px;
+}
+
+.opening-table-section {
+  margin-top: 30px;
+}
+
+.opening-table-section h3 {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 700px) {
+  .opening-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opening-card {
+    padding: 15px;
+  }
+
+  .opening-item-heading {
+    font-size: 13px;
+  }
+}
+/* OPENING-WISE COMPARISON */
+
+.opening-comparison-section {
+  margin-top: 30px;
+  padding-top: 24px;
+  border-top: 1px solid #334155;
+}
+
+.opening-comparison-section h3 {
+  margin-bottom: 8px;
+}
+
+.opening-comparison-section .table-wrapper {
+  margin-top: 20px;
+}
+
+.opening-comparison-section table {
+  color: #f1f5f9;
+}
+
+.opening-comparison-section th {
+  color: #93c5fd;
+  white-space: nowrap;
+}
+
+.opening-comparison-section td {
+  color: #e2e8f0;
+}
+
+.opening-improved {
+  color: #22c55e;
+}
+
+.opening-decreased {
+  color: #f87171;
+}
+
+/* OPPONENT DETAILED INSIGHTS */
+
+.opponent-panel {
+  margin-top: 24px;
+}
+
+.opponent-results {
+  margin-top: 25px;
+}
+
+.opponent-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.opponent-summary-card,
+.opponent-highlight-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 20px;
+  color: #f1f5f9;
+}
+
+.opponent-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.opponent-summary-card span {
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.opponent-summary-card strong {
+  color: #93c5fd;
+  font-size: 28px;
+}
+
+.opponent-highlights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.opponent-highlight-card h3 {
+  color: #f8fafc;
+  margin-top: 0;
+  margin-bottom: 18px;
+}
+
+.opponent-stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.opponent-positive {
+  color: #22c55e;
+}
+
+.opponent-negative {
+  color: #f87171;
+}
+
+.opponent-table-section {
+  margin-top: 25px;
+}
+
+.opponent-table-section h3,
+.opponent-chart-section h3 {
+  color: #f8fafc;
+  margin-bottom: 16px;
+}
+
+.opponent-table-section table {
+  color: #f1f5f9;
+}
+
+.opponent-table-section th {
+  color: #93c5fd;
+  white-space: nowrap;
+}
+
+.opponent-table-section td {
+  color: #e2e8f0;
+}
+
+.opponent-chart-section {
+  margin-top: 30px;
+}
+
+.opponent-chart-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 150px) 1fr 55px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.opponent-chart-row span {
+  overflow-wrap: anywhere;
+}
+
+.opponent-chart-row strong {
+  color: #93c5fd;
+  text-align: right;
+}
+
+.opponent-chart-track {
+  height: 10px;
+  background: #475569;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.opponent-chart-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 20px;
+}
+
+@media (max-width: 700px) {
+  .opponent-summary,
+  .opponent-highlights {
+    grid-template-columns: 1fr;
+  }
+
+  .opponent-chart-row {
+    grid-template-columns: 90px 1fr 48px;
+    gap: 8px;
+  }
+}

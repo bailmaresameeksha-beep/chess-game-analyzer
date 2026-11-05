@@ -24,10 +24,17 @@ function App() {
   const [compareLoading, setCompareLoading] = useState(false);
   const [compareError, setCompareError] = useState("");
 
+  const [openingCompareData, setOpeningCompareData] = useState(null);
+  const [openingCompareError, setOpeningCompareError] = useState("");
+
   const [trendData, setTrendData] = useState(null);
   const [trendUsername, setTrendUsername] = useState("");
   const [trendLoading, setTrendLoading] = useState(false);
   const [trendError, setTrendError] = useState("");
+
+  const [opponentData, setOpponentData] = useState(null);
+  const [opponentLoading, setOpponentLoading] = useState(false);
+  const [opponentError, setOpponentError] = useState("");
 
   const number = (value) => Number(value || 0);
 
@@ -113,6 +120,8 @@ function App() {
     setCompareLoading(true);
     setCompareError("");
     setCompareData(null);
+    setOpeningCompareData(null);
+    setOpeningCompareError("");
 
     try {
       const url =
@@ -130,6 +139,40 @@ function App() {
       }
 
       setCompareData(result);
+
+// Fetch opening performance for both selected months
+try {
+  const firstUrl =
+    `${API_BASE_URL}/api/analyze/${encodeURIComponent(username.trim())}` +
+    `/${compareYear1}/${compareMonth1.padStart(2, "0")}`;
+
+  const secondUrl =
+    `${API_BASE_URL}/api/analyze/${encodeURIComponent(username.trim())}` +
+    `/${compareYear2}/${compareMonth2.padStart(2, "0")}`;
+
+  const [firstResponse, secondResponse] = await Promise.all([
+    fetch(firstUrl),
+    fetch(secondUrl),
+  ]);
+
+  const [firstResult, secondResult] = await Promise.all([
+    firstResponse.json(),
+    secondResponse.json(),
+  ]);
+
+  if (!firstResponse.ok || !secondResponse.ok) {
+    throw new Error("Unable to load opening comparison data.");
+  }
+
+  setOpeningCompareData({
+    firstMonth: firstResult.topOpenings || [],
+    secondMonth: secondResult.topOpenings || [],
+  });
+} catch (openingError) {
+  setOpeningCompareError(
+    openingError.message || "Unable to compare opening performance."
+  );
+}
     } catch (err) {
       setCompareError(err.message || "Unable to compare months.");
     } finally {
@@ -174,6 +217,49 @@ function App() {
       setTrendLoading(false);
     }
   };
+
+const loadOpponentInsights = async () => {
+  if (!username.trim()) {
+    setOpponentError("Enter a Chess.com username first.");
+    return;
+  }
+
+  if (
+    !/^\d{4}$/.test(year) ||
+    Number(year) < 2007 ||
+    Number(year) > new Date().getFullYear() ||
+    !/^\d{1,2}$/.test(month) ||
+    Number(month) < 1 ||
+    Number(month) > 12
+  ) {
+    setOpponentError("Enter a valid year and month.");
+    return;
+  }
+
+  setOpponentLoading(true);
+  setOpponentError("");
+  setOpponentData(null);
+
+  try {
+    const url =
+      `${API_BASE_URL}/api/opponents/` +
+      `${encodeURIComponent(username.trim())}/` +
+      `${year}/${String(month).padStart(2, "0")}`;
+
+    const response = await fetch(url);
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "Unable to load opponent insights.");
+    }
+
+    setOpponentData(result);
+  } catch (err) {
+    setOpponentError(err.message || "Unable to load opponent insights.");
+  } finally {
+    setOpponentLoading(false);
+  }
+};
 
   useEffect(() => {
     loadData();
@@ -228,6 +314,84 @@ function App() {
   ];
 
   const months = trendData?.months || [];
+    // Opening Performance Analysis
+    // Opening-wise comparison data
+
+const normalizeOpeningName = (rawName) =>
+  String(rawName || "Unknown Opening")
+    .replace(/^https?:\/\/www\.chess\.com\/openings\//i, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const openingComparisonRows = (() => {
+  if (!openingCompareData) return [];
+
+  const openingMap = new Map();
+
+  const addMonthData = (items, monthKey) => {
+    items.forEach((item) => {
+      const name = normalizeOpeningName(item.opening);
+
+      if (!openingMap.has(name)) {
+        openingMap.set(name, {
+          name,
+          firstGames: 0,
+          firstWinRate: 0,
+          secondGames: 0,
+          secondWinRate: 0,
+        });
+      }
+
+      const opening = openingMap.get(name);
+
+      opening[`${monthKey}Games`] = number(item.games);
+      opening[`${monthKey}WinRate`] = number(item.winPercentage);
+    });
+  };
+
+  addMonthData(openingCompareData.firstMonth, "first");
+  addMonthData(openingCompareData.secondMonth, "second");
+
+  return Array.from(openingMap.values())
+    .sort(
+      (a, b) =>
+        b.firstGames + b.secondGames -
+        (a.firstGames + a.secondGames)
+    )
+    .slice(0, 15);
+})();
+
+  const openingData = (data?.topOpenings || []).map((item) => {
+    const rawName = String(item.opening || "Unknown Opening");
+
+    const openingName = rawName
+      .replace(/^https?:\/\/www\.chess\.com\/openings\//i, "")
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return {
+      name: openingName || "Unknown Opening",
+      games: number(item.games),
+      wins: number(item.wins),
+      winRate: number(item.winPercentage),
+    };
+  });
+
+  const mostPlayedOpenings = [...openingData]
+    .sort((a, b) => b.games - a.games)
+    .slice(0, 8);
+
+  const bestOpenings = [...openingData]
+    .filter((item) => item.games > 0)
+    .sort((a, b) => b.winRate - a.winRate || b.games - a.games)
+    .slice(0, 8);
+
+  const maxOpeningGames = Math.max(
+    1,
+    ...mostPlayedOpenings.map((item) => item.games)
+  );
 
   const chartWidth = 760;
   const chartHeight = 260;
@@ -524,6 +688,287 @@ function App() {
           </section>
         </>
       )}
+                {/* OPENING PERFORMANCE ANALYSIS */}
+
+          <section className="panel opening-performance-panel">
+            <p className="eyebrow">OPENING ANALYTICS</p>
+            <h2>Opening Performance</h2>
+
+            <p className="subtitle">
+              Discover which openings you play most often and which ones
+              produce your best results.
+            </p>
+
+            {openingData.length > 0 ? (
+              <>
+                <div className="opening-grid">
+
+                  {/* MOST PLAYED OPENINGS */}
+
+                  <div className="opening-card">
+                    <h3>Most Played Openings</h3>
+
+                    <p className="chart-description">
+                      Your eight most frequently played openings.
+                    </p>
+
+                    <div className="opening-list">
+                      {mostPlayedOpenings.map((opening, index) => (
+                        <div className="opening-item" key={`${opening.name}-${index}`}>
+                          <div className="opening-item-heading">
+                            <span>
+                              {index + 1}. {opening.name}
+                            </span>
+
+                            <strong>{opening.games} games</strong>
+                          </div>
+
+                          <div className="opening-progress">
+                            <div
+                              className="opening-progress-fill"
+                              style={{
+                                width: `${
+                                  (opening.games / maxOpeningGames) * 100
+                                }%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* BEST PERFORMING OPENINGS */}
+
+                  <div className="opening-card">
+                    <h3>Best Performing Openings</h3>
+
+                    <p className="chart-description">
+                      Openings ranked by win percentage.
+                    </p>
+
+                    <div className="opening-list">
+                      {bestOpenings.map((opening, index) => (
+                        <div
+                          className="opening-item"
+                          key={`${opening.name}-${index}`}
+                        >
+                          <div className="opening-item-heading">
+                            <span>
+                              {index + 1}. {opening.name}
+                            </span>
+
+                            <strong>
+                              {opening.winRate.toFixed(2)}%
+                            </strong>
+                          </div>
+
+                          <p className="opening-games-info">
+                            {opening.games} games · {opening.wins} wins
+                          </p>
+
+                          <div className="opening-progress">
+                            <div
+                              className="opening-progress-fill opening-win-fill"
+                              style={{
+                                width: `${Math.max(
+                                  0,
+                                  Math.min(100, opening.winRate)
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* OPENING PERFORMANCE TABLE */}
+
+                <div className="opening-table-section">
+                  <h3>Opening Performance Details</h3>
+
+                  <div className="table-wrapper">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Opening</th>
+                          <th>Games</th>
+                          <th>Wins</th>
+                          <th>Win Rate</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {openingData
+                          .slice()
+                          .sort((a, b) => b.games - a.games)
+                          .map((opening, index) => (
+                            <tr key={`${opening.name}-${index}`}>
+                              <td>{opening.name}</td>
+                              <td>{opening.games}</td>
+                              <td>{opening.wins}</td>
+                              <td>{opening.winRate.toFixed(2)}%</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p>No opening performance data available for this period.</p>
+            )}
+          </section>
+
+          
+{/* OPPONENT DETAILED INSIGHTS */}
+
+<section className="panel opponent-panel">
+  <p className="eyebrow">OPPONENT ANALYTICS</p>
+  <h2>Opponent Detailed Insights</h2>
+
+  <p className="subtitle">
+    Understand your performance against individual opponents.
+  </p>
+
+  <button
+    className="analyze-button"
+    onClick={loadOpponentInsights}
+    disabled={opponentLoading}
+  >
+    {opponentLoading ? "Loading Opponents..." : "Analyze Opponents"}
+  </button>
+
+  {opponentError && (
+    <div className="status-message error-message" role="alert">
+      {opponentError}
+    </div>
+  )}
+
+  {opponentData && (
+    <div className="opponent-results">
+
+      <div className="opponent-summary">
+        <div className="opponent-summary-card">
+          <span>Total Opponents</span>
+          <strong>{opponentData.totalOpponents}</strong>
+        </div>
+
+        <div className="opponent-summary-card">
+          <span>Games Analyzed</span>
+          <strong>
+            {opponentData.opponents.reduce(
+              (total, item) => total + item.games,
+              0
+            )}
+          </strong>
+        </div>
+      </div>
+
+      <div className="opponent-highlights">
+
+        <div className="opponent-highlight-card">
+          <h3>Best Performance Against</h3>
+
+          {opponentData.bestAgainst.length > 0 ? (
+            opponentData.bestAgainst.map((item, index) => (
+              <div className="opponent-stat-row" key={item.username}>
+                <span>
+                  {index + 1}. {item.username}
+                </span>
+                <strong className="opponent-positive">
+                  {item.winPercentage.toFixed(2)}%
+                </strong>
+              </div>
+            ))
+          ) : (
+            <p>Not enough repeat games for comparison.</p>
+          )}
+        </div>
+
+        <div className="opponent-highlight-card">
+          <h3>Toughest Opponents</h3>
+
+          {opponentData.toughestOpponents.length > 0 ? (
+            opponentData.toughestOpponents.map((item, index) => (
+              <div className="opponent-stat-row" key={item.username}>
+                <span>
+                  {index + 1}. {item.username}
+                </span>
+                <strong className="opponent-negative">
+                  {item.winPercentage.toFixed(2)}%
+                </strong>
+              </div>
+            ))
+          ) : (
+            <p>Not enough repeat games for comparison.</p>
+          )}
+        </div>
+
+      </div>
+
+      <div className="opponent-table-section">
+        <h3>Top 10 Most Played Opponents</h3>
+
+        {opponentData.mostPlayed.length > 0 ? (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Opponent</th>
+                  <th>Games</th>
+                  <th>Wins</th>
+                  <th>Draws</th>
+                  <th>Losses</th>
+                  <th>Win Rate</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {opponentData.mostPlayed.map((item) => (
+                  <tr key={item.username}>
+                    <td>{item.username}</td>
+                    <td>{item.games}</td>
+                    <td>{item.wins}</td>
+                    <td>{item.draws}</td>
+                    <td>{item.losses}</td>
+                    <td>{item.winPercentage.toFixed(2)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>No opponent data available for this month.</p>
+        )}
+      </div>
+
+      <div className="opponent-chart-section">
+        <h3>Opponent Win Rate</h3>
+
+        {opponentData.mostPlayed.map((item) => (
+          <div className="opponent-chart-row" key={item.username}>
+            <span>{item.username}</span>
+
+            <div className="opponent-chart-track">
+              <div
+                className="opponent-chart-fill"
+                style={{
+                  width: `${Math.min(100, item.winPercentage)}%`
+                }}
+              />
+            </div>
+
+            <strong>{item.winPercentage.toFixed(1)}%</strong>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  )}
+</section>
 
       <section className="panel comparison-panel">
         <p className="eyebrow">MONTHLY ANALYTICS</p>
@@ -634,6 +1079,100 @@ function App() {
                     : "Win rate stayed the same."}
               </span>
             </div>
+          </div>
+        )}
+                {/* OPENING-WISE COMPARISON */}
+
+        {openingCompareError && (
+          <div className="status-message error-message" role="alert">
+            {openingCompareError}
+          </div>
+        )}
+
+        {openingCompareData && (
+          <div className="opening-comparison-section">
+            <p className="eyebrow">OPENING ANALYTICS</p>
+            <h3>Opening-wise Comparison</h3>
+
+            <p className="subtitle">
+              Compare the performance of individual openings across
+              the two selected months.
+            </p>
+
+            {openingComparisonRows.length > 0 ? (
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Opening</th>
+                      <th>
+                        {compareYear1}-{compareMonth1.padStart(2, "0")} Games
+                      </th>
+                      <th>Win Rate</th>
+                      <th>
+                        {compareYear2}-{compareMonth2.padStart(2, "0")} Games
+                      </th>
+                      <th>Win Rate</th>
+                      <th>Change</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {openingComparisonRows.map((opening, index) => {
+                      const difference =
+                        opening.secondWinRate - opening.firstWinRate;
+
+                      const hasBothMonths =
+                        opening.firstGames > 0 &&
+                        opening.secondGames > 0;
+
+                      return (
+                        <tr key={`${opening.name}-${index}`}>
+                          <td>{opening.name}</td>
+
+                          <td>{opening.firstGames}</td>
+
+                          <td>
+                            {opening.firstGames > 0
+                              ? `${opening.firstWinRate.toFixed(2)}%`
+                              : "—"}
+                          </td>
+
+                          <td>{opening.secondGames}</td>
+
+                          <td>
+                            {opening.secondGames > 0
+                              ? `${opening.secondWinRate.toFixed(2)}%`
+                              : "—"}
+                          </td>
+
+                          <td>
+                            {hasBothMonths ? (
+                              <strong
+                                className={
+                                  difference > 0
+                                    ? "opening-improved"
+                                    : difference < 0
+                                      ? "opening-decreased"
+                                      : ""
+                                }
+                              >
+                                {difference > 0 ? "+" : ""}
+                                {difference.toFixed(2)}%
+                              </strong>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p>No opening comparison data available.</p>
+            )}
           </div>
         )}
       </section>
